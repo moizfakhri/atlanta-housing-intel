@@ -256,3 +256,63 @@ def ingest_realtor_atlanta(atlanta_zips: list[str] | None = None) -> dict[str, P
 
     return outputs
 
+
+def ingest_irs_migration() -> Path:
+    """Download IRS SOI county-to-county migration inflows & outflows (2021-2022) for Metro Atlanta."""
+    PATH_C_BRONZE.mkdir(parents=True, exist_ok=True)
+    raw_irs_dir = RAW_DIR / "irs"
+    raw_irs_dir.mkdir(parents=True, exist_ok=True)
+
+    urls = {
+        "inflow": "https://www.irs.gov/pub/irs-soi/countyinflow2122.csv",
+        "outflow": "https://www.irs.gov/pub/irs-soi/countyoutflow2122.csv",
+    }
+    frames: list[pl.DataFrame] = []
+    with httpx.Client(headers={"User-Agent": "atlanta-housing-intel/0.1"}) as client:
+        for direction, url in urls.items():
+            local_csv = raw_irs_dir / f"irs_{direction}_2122.csv"
+            if not local_csv.exists():
+                console.print(f"[cyan]Fetching IRS SOI {direction} (2021-2022)...[/cyan]")
+                r = client.get(url, timeout=60.0, follow_redirects=True)
+                r.raise_for_status()
+                local_csv.write_bytes(r.content)
+
+            df = pl.read_csv(local_csv, encoding="latin1", infer_schema_length=2000)
+            df = df.with_columns(
+                (
+                    pl.col("y1_statefips").cast(pl.Utf8).str.zfill(2)
+                    + pl.col("y1_countyfips").cast(pl.Utf8).str.zfill(3)
+                ).alias("origin_fips"),
+                (
+                    pl.col("y2_statefips").cast(pl.Utf8).str.zfill(2)
+                    + pl.col("y2_countyfips").cast(pl.Utf8).str.zfill(3)
+                ).alias("dest_fips"),
+                pl.lit(direction).alias("direction"),
+            )
+            if direction == "inflow":
+                atl = df.filter(pl.col("dest_fips").is_in(COUNTY_FIPS_LIST))
+            else:
+                atl = df.filter(pl.col("origin_fips").is_in(COUNTY_FIPS_LIST))
+            frames.append(atl)
+
+    combined = pl.concat(frames, how="diagonal_relaxed")
+    out_path = PATH_C_BRONZE / "irs_atlanta_migration_2122.parquet"
+    combined.write_parquet(out_path)
+    console.print(f"[green]Saved IRS Atlanta migration:[/green] {combined.height:,} rows -> {out_path}")
+    return out_path
+
+
+def run_all_path_c_bronze(hmda_years: list[int] | None = None) -> dict[str, Path]:
+    """Run the full Path C Bronze ingestion suite (Zillow, Realtor Core/Hotness, HMDA, IRS)."""
+    results: dict[str, Path] = {}
+    results["zillow"] = ingest_zillow_atlanta()
+    results.update(ingest_realtor_atlanta())
+    results["hmda"] = ingest_hmda_atlanta(years=hmda_years)
+    results["irs"] = ingest_irs_migration()
+    return results
+
+
+if __name__ == "__main__":
+    run_all_path_c_bronze()
+
+
