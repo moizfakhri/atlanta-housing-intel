@@ -52,3 +52,17 @@ def test_fastapi_3d_and_simulator_endpoints() -> None:
     r_sim = client.get("/api/path-c/simulate-pricing?zip_code=30075&fair_value=550000")
     assert r_sim.status_code == 200
     assert len(r_sim.json()["frontier"]) == 13
+
+    r_b3d = client.get("/api/path-a/buildings-3d")
+    assert r_b3d.status_code == 200
+    assert r_b3d.json()["type"] == "FeatureCollection"
+    assert len(r_b3d.json()["features"]) >= 100
+
+    r_lodes = client.get("/api/path-c/commute-arcs")
+    assert r_lodes.status_code == 200
+    assert r_lodes.json()["count"] >= 10
+
+    r_sql = client.get("/api/spatial-query?q=highest+price+cuts+buyer+leverage")
+    assert r_sql.status_code == 200
+    assert len(r_sql.json()["rows"]) >= 1
+    assert "SELECT" in r_sql.json()["sql"].upper()

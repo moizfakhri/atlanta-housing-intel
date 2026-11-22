@@ -3,30 +3,31 @@
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import duckdb
 import geopandas as gpd
 import polars as pl
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from atl_housing.config import BRONZE_DIR, GOLD_DIR, RAW_DIR, SILVER_DIR
+from atl_housing.config import BRONZE_DIR, DUCKDB_PATH, GOLD_DIR, RAW_DIR, SILVER_DIR
 from atl_housing.tracks.path_c_liquidity.pricing_simulator import simulate_ask_frontier
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(
     title="Atlanta Suburban Real Estate Intelligence API",
-    version="0.2.0",
-    description="Serves Path C liquidity/pricing, Path A 3D GNN + SWCP valuation, Path E catalysts, and Path B streetscapes.",
+    version="0.3.0",
+    description="Serves Path C liquidity/pricing/LODES, Path A true 3D GNN+SWCP buildings, Path E catalysts, Path B streetscapes, and Grounded Spatial SQL.",
 )
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Representative origin centroids for top out-of-state IRS migration counties feeding Metro Atlanta
 ORIGIN_COORDS: dict[tuple[str, str], tuple[float, float]] = {
     ("CA", "Los Angeles County"): (-118.2437, 34.0522),
     ("IL", "Cook County"): (-87.6298, 41.8781),
@@ -89,9 +90,19 @@ def health() -> dict[str, Any]:
         "status": "ok",
         "path_c_silver_exists": (SILVER_DIR / "path_c" / "atlanta_zip_liquidity_panel.parquet").exists(),
         "path_a_gold_exists": (GOLD_DIR / "path_a" / "parcel_3d_predictions.parquet").exists(),
+        "path_a_footprints_exists": (GOLD_DIR / "path_a" / "buildings_3d_footprints.geojson").exists(),
         "path_e_rezoning_exists": (BRONZE_DIR / "path_e" / "johns_creek_rezoning.parquet").exists(),
         "path_b_streetscape_exists": (BRONZE_DIR / "path_b" / "mapillary_suburb_samples.parquet").exists(),
     }
+
+
+@app.get("/api/path-a/buildings-3d")
+def get_buildings_3d_footprints() -> FileResponse:
+    """Serve true extruded Overture 3D building polygon footprints joined to GNN+SWCP predictions."""
+    gj = GOLD_DIR / "path_a" / "buildings_3d_footprints.geojson"
+    if not gj.exists():
+        raise HTTPException(status_code=404, detail="Run path_a_valuation.spatial_cqr first.")
+    return FileResponse(gj, media_type="application/geo+json")
 
 
 @app.get("/api/path-a/parcels-3d")
@@ -137,7 +148,6 @@ def get_zip_liquidity() -> dict[str, Any]:
     latest_dt = df["month_date"].max()
     latest = df.filter(pl.col("month_date") == latest_dt)
 
-    # Grab most recent non-null ZHVI per ZIP (Zillow CSV ends Dec 2025 while Realtor is Oct 2026)
     latest_zhvi = (
         df.filter(pl.col("zhvi").is_not_null())
         .sort("month_date")
@@ -208,7 +218,7 @@ def get_migration_arcs() -> dict[str, Any]:
         o_lon, o_lat = ORIGIN_COORDS[key]
         d_name, d_lon, d_lat = ATL_COUNTY_COORDS[dest_fips]
         households = int(row["n1"])
-        agi_m = round(float(row["agi"]) / 1e3, 1)  # IRS AGI is in $1,000s -> $M
+        agi_m = round(float(row["agi"]) / 1e3, 1)
         arcs.append(
             {
                 "origin_label": f"{key[1]}, {key[0]}",
@@ -222,6 +232,35 @@ def get_migration_arcs() -> dict[str, Any]:
             }
         )
     return {"count": len(arcs[:60]), "arcs": arcs[:60]}
+
+
+@app.get("/api/path-c/commute-arcs")
+def get_commute_arcs() -> dict[str, Any]:
+    """Return cross-county Metro Atlanta morning commuter arcs from Census LODES8."""
+    pq = BRONZE_DIR / "path_c" / "lodes_atlanta_county_od.parquet"
+    if not pq.exists():
+        return {"count": 0, "arcs": []}
+    df = pl.read_parquet(pq).filter(pl.col("home_county_fips") != pl.col("work_county_fips"))
+    arcs = []
+    for row in df.iter_rows(named=True):
+        hf = str(row["home_county_fips"])
+        wf = str(row["work_county_fips"])
+        if hf not in ATL_COUNTY_COORDS or wf not in ATL_COUNTY_COORDS:
+            continue
+        h_name, h_lon, h_lat = ATL_COUNTY_COORDS[hf]
+        w_name, w_lon, w_lat = ATL_COUNTY_COORDS[wf]
+        arcs.append(
+            {
+                "home_county": h_name,
+                "work_county": w_name,
+                "source": [h_lon, h_lat],
+                "target": [w_lon, w_lat],
+                "commuters": int(row["total_commuters"]),
+                "high_wage_commuters": int(row["high_wage_commuters"]),
+                "high_wage_pct": round(float(row["high_wage_share"]) * 100, 1),
+            }
+        )
+    return {"count": len(arcs), "arcs": arcs}
 
 
 @app.get("/api/path-c/simulate-pricing")
@@ -293,4 +332,102 @@ def get_streetscape_samples() -> dict[str, Any]:
     if not pq.exists():
         return {"count": 0, "samples": []}
     df = pl.read_parquet(pq).filter(pl.col("lon").is_not_null() & pl.col("lat").is_not_null())
-    return {"count": df.height, "samples": df.to_dicts()}
+    scores_pq = GOLD_DIR / "path_b" / "suburb_streetscape_scores.parquet"
+    scores = pl.read_parquet(scores_pq).to_dicts() if scores_pq.exists() else []
+    return {"count": df.height, "samples": df.to_dicts(), "suburb_scores": scores}
+
+
+@app.get("/api/spatial-query")
+def spatial_sql_analyst(q: str = Query(..., min_length=3, max_length=240)) -> dict[str, Any]:
+    """Grounded NL2GeoSQL analyst executing verified read-only DuckDB SQL over Gold marts."""
+    ql = q.lower()
+    con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    centroids = _load_zcta_centroids()
+
+    # Extract optional dollar budget (e.g., "under $500k" or "< 450000")
+    price_cap: float | None = None
+    m_k = re.search(r"(\d{3,4})\s*k", ql)
+    m_raw = re.search(r"\$?(\d{6,7})", ql)
+    if m_k:
+        price_cap = float(m_k.group(1)) * 1000.0
+    elif m_raw:
+        price_cap = float(m_raw.group(1))
+
+    # Route 1: Parcel-level 3D undervalued / low-uncertainty query
+    if any(w in ql for w in ["parcel", "undervalued", "building", "gnn", "3d", "home"]):
+        gold_pq = GOLD_DIR / "path_a" / "parcel_3d_predictions.parquet"
+        cap_clause = f"AND TotAppr <= {price_cap}" if price_cap else ""
+        sql = f"""
+            SELECT ParcelID AS id, ZipCode AS zip, TotAppr AS appraisal,
+                   hybrid_pred, mispricing_pct, swcp_lower, swcp_upper, lon, lat
+            FROM read_parquet('{gold_pq}')
+            WHERE mispricing_pct > 5 {cap_clause}
+            ORDER BY mispricing_pct DESC
+            LIMIT 8
+        """
+        df = con.sql(sql).df()
+        con.close()
+        rows = df.to_dict(orient="records")
+        fly = (
+            {"mode": "path_a", "lon": float(rows[0]["lon"]), "lat": float(rows[0]["lat"]), "zoom": 15.2}
+            if rows
+            else {"mode": "path_a", "lon": -84.385, "lat": 33.888, "zoom": 13.6}
+        )
+        return {
+            "query": q,
+            "sql": " ".join(sql.split()),
+            "summary": f"Found {len(rows)} undervalued 3D parcels where Hybrid GNN+LightGBM exceeds appraisal by >5%.",
+            "fly_to": fly,
+            "rows": rows,
+        }
+
+    # Route 2: Buyer leverage / highest price cuts vs. Hot seller demand ZIPs
+    county_filter = ""
+    for cname in ["Fulton", "DeKalb", "Cobb", "Gwinnett", "Forsyth"]:
+        if cname.lower() in ql:
+            county_filter = f"AND county_name = '{cname} County'"
+            break
+
+    is_buyer_leverage = any(w in ql for w in ["cut", "leverage", "slow", "discount", "stale", "buyer"])
+    order_col = "price_cut_share DESC" if is_buyer_leverage else "hotness_score DESC"
+    cap_clause = f"AND median_listing_price <= {price_cap}" if price_cap else ""
+
+    sql = f"""
+        WITH latest AS (
+            SELECT MAX(month_date) AS max_dt FROM main.mart_atlanta_submarket_signals
+        )
+        SELECT zip_code, city, county_name,
+               ROUND(median_dom, 1) AS median_dom,
+               ROUND(price_cut_share * 100, 1) AS price_cut_pct,
+               ROUND(hotness_score, 1) AS hotness_score,
+               ROUND(median_listing_price, 0) AS median_list_price,
+               market_regime
+        FROM main.mart_atlanta_submarket_signals, latest
+        WHERE month_date = latest.max_dt
+          AND active_listing_count >= 25
+          {county_filter}
+          {cap_clause}
+        ORDER BY {order_col}
+        LIMIT 8
+    """
+    df = con.sql(sql).df()
+    con.close()
+    rows = df.to_dict(orient="records")
+    top_zip = str(rows[0]["zip_code"]).zfill(5) if rows else "30075"
+    lon, lat = centroids.get(top_zip, (-84.35, 33.86))
+    return {
+        "query": q,
+        "sql": " ".join(sql.split()),
+        "summary": (
+            f"Top {len(rows)} Metro Atlanta ZIPs ranked by "
+            f"{'seller price-cut share (buyer leverage)' if is_buyer_leverage else 'buyer hotness score'}."
+        ),
+        "fly_to": {
+            "mode": "path_c_towers",
+            "lon": lon,
+            "lat": lat,
+            "zoom": 11.4,
+            "color_by_cut": is_buyer_leverage,
+        },
+        "rows": rows,
+    }
