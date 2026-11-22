@@ -58,6 +58,14 @@ LIQUIDITY_MICROSTRUCTURE_FEATURES = [
     "demand_minus_supply",
 ]
 
+MACRO_FEATURES = [
+    "mortgage_30y",
+    "mortgage_30y_delta_3m",
+    "fed_funds",
+    "atl_unemp_rate",
+    "atl_nonfarm_yoy",
+]
+
 
 @dataclass
 class EvalMetrics:
@@ -71,9 +79,9 @@ class EvalMetrics:
 
 
 def engineer_leakage_safe_features(df: pl.DataFrame) -> pl.DataFrame:
-    """Create strictly backward-looking momentum, liquidity-change, and seasonal features."""
+    """Create strictly backward-looking momentum, liquidity-change, macro, and seasonal features."""
     df = df.sort(["zip_code", "month_date"])
-    return df.with_columns(
+    exprs = [
         # Backward price momentum (strictly t vs t-k)
         (pl.col("zhvi") / pl.col("zhvi").shift(1).over("zip_code") - 1.0).alias("zhvi_ret_1m"),
         (pl.col("zhvi") / pl.col("zhvi").shift(3).over("zip_code") - 1.0).alias("zhvi_ret_3m"),
@@ -93,7 +101,30 @@ def engineer_leakage_safe_features(df: pl.DataFrame) -> pl.DataFrame:
         # Cyclical month seasonality
         (2.0 * np.pi * pl.col("month_date").dt.month() / 12.0).sin().alias("month_sin"),
         (2.0 * np.pi * pl.col("month_date").dt.month() / 12.0).cos().alias("month_cos"),
-    )
+    ]
+    if "mortgage_30y" in df.columns:
+        exprs.append(
+            (pl.col("mortgage_30y") - pl.col("mortgage_30y").shift(3).over("zip_code")).alias(
+                "mortgage_30y_delta_3m"
+            )
+        )
+    if "atl_nonfarm_emp" in df.columns:
+        exprs.append(
+            (
+                pl.col("atl_nonfarm_emp") / pl.col("atl_nonfarm_emp").shift(12).over("zip_code")
+                - 1.0
+            ).alias("atl_nonfarm_yoy")
+        )
+    out = df.with_columns(exprs)
+    if "target_zhvi_ret_6m" in out.columns:
+        # Cross-sectionally demeaned excess 6M return (isolates submarket alpha from macro regime drift)
+        out = out.with_columns(
+            (
+                pl.col("target_zhvi_ret_6m")
+                - pl.col("target_zhvi_ret_6m").median().over("month_date")
+            ).alias("target_excess_ret_6m")
+        )
+    return out
 
 
 def walk_forward_evaluate(
@@ -194,13 +225,15 @@ def run_benchmark() -> None:
     feat_df = engineer_leakage_safe_features(df)
 
     full_features = PRICE_MOMENTUM_FEATURES + LIQUIDITY_MICROSTRUCTURE_FEATURES
+    macro_full = full_features + [c for c in MACRO_FEATURES if c in feat_df.columns]
     experiments = [
         ("target_zhvi_ret_6m", 6, "Price Momentum Only", PRICE_MOMENTUM_FEATURES, "ridge"),
         ("target_zhvi_ret_6m", 6, "Momentum + Liquidity", full_features, "ridge"),
-        ("target_zhvi_ret_6m", 6, "Price Momentum Only", PRICE_MOMENTUM_FEATURES, "lightgbm"),
-        ("target_zhvi_ret_6m", 6, "Momentum + Liquidity", full_features, "lightgbm"),
+        ("target_zhvi_ret_6m", 6, "Momentum + Liq + FRED", macro_full, "lightgbm"),
+        ("target_excess_ret_6m", 6, "Momentum Only (Excess)", PRICE_MOMENTUM_FEATURES, "lightgbm"),
+        ("target_excess_ret_6m", 6, "Mom + Liq + FRED (Excess)", macro_full, "lightgbm"),
         ("target_dom_delta_3m", 3, "Price Momentum Only", PRICE_MOMENTUM_FEATURES, "lightgbm"),
-        ("target_dom_delta_3m", 3, "Momentum + Liquidity", full_features, "lightgbm"),
+        ("target_dom_delta_3m", 3, "Momentum + Liq + FRED", macro_full, "lightgbm"),
     ]
 
     tbl = Table(title="Path C Walk-Forward Benchmark (Purged Expanding Window, Metro Atlanta ZIPs)")

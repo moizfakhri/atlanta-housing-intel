@@ -38,7 +38,7 @@ def ingest_overture_3d_buildings(
 
     con = duckdb.connect(":memory:")
     con.execute("INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;")
-    con.execute("SET s3_region='us-west-2';")
+    con.execute("SET s3_region='us-west-2'; SET geometry_always_xy = true;")
     con.execute(
         f"""
         COPY (
@@ -49,7 +49,7 @@ def ingest_overture_3d_buildings(
                 height,
                 num_floors,
                 roof_shape,
-                ST_Area_Spheroid(ST_FlipCoordinates(geometry)) AS footprint_sqm,
+                ST_Area_Spheroid(geometry) AS footprint_sqm,
                 ST_X(ST_Centroid(geometry)) AS lon,
                 ST_Y(ST_Centroid(geometry)) AS lat,
                 ST_AsWKB(geometry) AS geom_wkb
