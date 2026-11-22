@@ -57,7 +57,10 @@ def probe_mapillary_coverage(h3_res: int = 8) -> None:
     table.add_column("Panoramic?", justify="right")
     table.add_column("Verdict", style="bold")
 
-    with httpx.Client(timeout=25.0) as client:
+    with httpx.Client(
+        timeout=25.0,
+        headers={"Authorization": f"OAuth {token}"},
+    ) as client:
         for p in SUBURB_PROBES:
             cell = h3.latlng_to_cell(p.lat, p.lon, h3_res)
             boundary = h3.cell_to_boundary(cell)
@@ -68,13 +71,15 @@ def probe_mapillary_coverage(h3_res: int = 8) -> None:
             r = client.get(
                 "https://graph.mapillary.com/images",
                 params={
-                    "access_token": token,
                     "fields": "id,captured_at,is_pano",
                     "bbox": bbox,
                     "limit": 500,
                 },
             )
-            r.raise_for_status()
+            if r.status_code != 200:
+                err_msg = r.json().get("error", {}).get("message", f"HTTP {r.status_code}")
+                console.print(f"[red]Mapillary API error ({r.status_code}):[/red] {err_msg}")
+                return
             imgs = r.json().get("data", [])
             n_pano = sum(1 for im in imgs if im.get("is_pano"))
             verdict = "GO" if len(imgs) >= 100 else ("BORDERLINE" if len(imgs) >= 25 else "SPARSE/CUT")
