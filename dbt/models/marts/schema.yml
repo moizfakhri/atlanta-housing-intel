@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: mart_atlanta_submarket_signals
+    description: "Gold monthly Metro Atlanta ZIP liquidity, macro, and lagged HMDA credit demand mart."
+    columns:
+      - name: zip_month_id
+        tests:
+          - not_null
+          - unique
+      - name: zip_code
+        tests:
+          - not_null
+      - name: month_date
+        tests:
+          - not_null
+      - name: market_regime
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["HOT_SELLER", "BALANCED", "BUYER_LEVERAGE_PRICE_CUTS"]

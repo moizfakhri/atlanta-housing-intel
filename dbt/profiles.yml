@@ -1,0 +1,7 @@
+atlanta_housing:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../data/atlanta_housing.duckdb"
+      threads: 4

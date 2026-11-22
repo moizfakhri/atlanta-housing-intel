@@ -1,0 +1,19 @@
+name: "atlanta_housing_dbt"
+version: "1.0.0"
+config-version: 2
+
+profile: "atlanta_housing"
+
+model-paths: ["models"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  atlanta_housing_dbt:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
