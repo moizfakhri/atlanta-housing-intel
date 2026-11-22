@@ -123,6 +123,118 @@ def get_zips_choropleth_geojson() -> FileResponse:
     return FileResponse(gj, media_type="application/geo+json")
 
 
+@app.get("/api/path-c/metro-timeseries")
+def get_metro_timeseries() -> dict[str, Any]:
+    """Return 2016-2026 monthly Metro Atlanta liquidity, price-cut share, ZHVI, and FRED 30Y rate."""
+    pq = SILVER_DIR / "path_c" / "atlanta_zip_liquidity_panel.parquet"
+    if not pq.exists():
+        raise HTTPException(status_code=404, detail="Silver panel missing.")
+    con = duckdb.connect(":memory:")
+    rows = con.sql(
+        f"""
+        SELECT
+            STRFTIME(month_date, '%Y-%m') AS month,
+            ROUND(MEDIAN(median_dom), 1) AS median_dom,
+            ROUND(AVG(price_cut_share) * 100, 1) AS avg_price_cut_pct,
+            ROUND(AVG(hotness_score), 1) AS avg_hotness,
+            ROUND(MEDIAN(zhvi), 0) AS median_zhvi,
+            ROUND(AVG(mortgage_30y), 2) AS mortgage_30y
+        FROM read_parquet('{pq}')
+        WHERE active_listing_count >= 10
+        GROUP BY month_date
+        ORDER BY month_date
+        """
+    ).fetchall()
+    return {
+        "series": [
+            {
+                "month": r[0],
+                "median_dom": r[1],
+                "avg_price_cut_pct": r[2],
+                "avg_hotness": r[3],
+                "median_zhvi": r[4],
+                "mortgage_30y": r[5],
+            }
+            for r in rows
+        ]
+    }
+
+
+@app.get("/api/path-c/zip-history/{zip_code}")
+def get_zip_history(zip_code: str) -> dict[str, Any]:
+    """Return 2016-2026 monthly liquidity & price history for a single Metro Atlanta ZIP."""
+    zc = zip_code.strip().zfill(5)
+    pq = SILVER_DIR / "path_c" / "atlanta_zip_liquidity_panel.parquet"
+    if not pq.exists():
+        raise HTTPException(status_code=404, detail="Silver panel missing.")
+    df = (
+        pl.read_parquet(pq)
+        .filter(pl.col("zip_code") == zc)
+        .sort("month_date")
+        .select(
+            [
+                pl.col("month_date").dt.strftime("%Y-%m").alias("month"),
+                pl.col("median_dom"),
+                (pl.col("price_cut_share") * 100.0).round(1).alias("price_cut_pct"),
+                pl.col("hotness_score").round(1),
+                pl.col("zhvi").round(0),
+                pl.col("active_listing_count"),
+            ]
+        )
+    )
+    if df.height == 0:
+        raise HTTPException(status_code=404, detail=f"ZIP {zc} not found.")
+    return {"zip_code": zc, "history": df.to_dicts()}
+
+
+@app.get("/api/analytics/summary")
+def get_analytics_summary() -> dict[str, Any]:
+    """Return live HMDA 5-county credit summary, Path B GVI scores, and verified model benchmarks."""
+    hmda_pq = SILVER_DIR / "path_c" / "atlanta_county_credit_demand.parquet"
+    hmda_2024 = (
+        pl.read_parquet(hmda_pq).filter(pl.col("activity_year") == 2024).sort("county_name").to_dicts()
+        if hmda_pq.exists()
+        else []
+    )
+    path_b_pq = GOLD_DIR / "path_b" / "suburb_streetscape_scores.parquet"
+    streetscape = pl.read_parquet(path_b_pq).to_dicts() if path_b_pq.exists() else []
+    return {
+        "hmda_2024": hmda_2024,
+        "streetscape_scores": streetscape,
+        "benchmarks": {
+            "path_a_models": [
+                {"label": "Parcel Baseline (LGBM)", "mape": 25.96, "rmse": 561382},
+                {"label": "+ Overture 3D (Pilot)", "mape": 20.83, "rmse": 467010},
+                {"label": "Full-City LGBM (27.8K)", "mape": 14.84, "rmse": 259217},
+                {"label": "PyTorch Spatial GNN (K=12)", "mape": 13.98, "rmse": 270051},
+                {"label": "Hybrid GNN + LGBM", "mape": 13.56, "rmse": 251252},
+            ],
+            "spatial_cqr": [
+                {"tier": "Starter (<33%)", "global_cp": 98.4, "spatial_cqr": 93.0, "width": 555891},
+                {"tier": "Upper-Mid (33-67%)", "global_cp": 98.8, "spatial_cqr": 90.4, "width": 1071842},
+                {"tier": "Luxury (>67%)", "global_cp": 74.1, "spatial_cqr": 88.9, "width": 1798852},
+            ],
+            "survival_hazards": [
+                {"factor": "Supply Tightness (+1 SD)", "hr": 2.376, "dom_pct": -17.1},
+                {"factor": "Price-Cut Capitulation (+1 SD)", "hr": 1.353, "dom_pct": -6.3},
+                {"factor": "Buyer Demand (+1 SD)", "hr": 1.025, "dom_pct": -0.2},
+                {"factor": "30Y Mortgage Rate (+1 SD)", "hr": 0.794, "dom_pct": 5.7},
+                {"factor": "Lagged HMDA Denial Rate (+1 SD)", "hr": 0.764, "dom_pct": 5.9},
+            ],
+            "path_c_walkforward": {
+                "excess_6m_mae_before": 2.31,
+                "excess_6m_mae_after": 2.05,
+                "excess_6m_ic_before": 0.477,
+                "excess_6m_ic_after": 0.557,
+                "dom_3m_mae_before": 17.29,
+                "dom_3m_mae_after": 12.08,
+                "dom_3m_ic_before": 0.041,
+                "dom_3m_ic_after": 0.583,
+            },
+        },
+    }
+
+
 @app.get("/api/path-a/parcels-3d")
 def get_parcels_3d(limit: int = Query(default=2500, ge=100, le=5000)) -> dict[str, Any]:
     """Return 3D residential parcels with PyTorch GNN + LightGBM predictions, SWCP intervals & top-5 comps."""

@@ -74,3 +74,15 @@ def test_fastapi_3d_and_simulator_endpoints() -> None:
     assert r_sql.status_code == 200
     assert len(r_sql.json()["rows"]) >= 1
     assert "SELECT" in r_sql.json()["sql"].upper()
+
+    r_ts = client.get("/api/path-c/metro-timeseries")
+    assert r_ts.status_code == 200
+    assert len(r_ts.json()["series"]) >= 100
+
+    r_zh = client.get("/api/path-c/zip-history/30075")
+    assert r_zh.status_code == 200
+    assert len(r_zh.json()["history"]) >= 100
+
+    r_an = client.get("/api/analytics/summary")
+    assert r_an.status_code == 200
+    assert len(r_an.json()["hmda_2024"]) == 5

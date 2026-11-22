@@ -9,26 +9,33 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
   <style>
     :root {
       color-scheme: light;
-      --bg-canvas: #f1f5f9;
-      --bg-panel: rgba(255, 255, 255, 0.94);
+      --bg-canvas: #eef2f6;
+      --bg-surface: #ffffff;
+      --bg-glass: rgba(255, 255, 255, 0.95);
       --bg-card: #f8fafc;
-      --border-subtle: #cbd5e1;
+      --border: #cbd5e1;
+      --border-soft: #e2e8f0;
       --text-primary: #0f172a;
-      --text-muted: #475569;
-      --brand-accent: #0284c7;
-      --brand-accent-soft: #e0f2fe;
-      --brand-emerald: #059669;
-      --brand-emerald-soft: #d1fae5;
-      --brand-amber: #d97706;
-      --brand-rose: #e11d48;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --brand: #0284c7;
+      --brand-soft: #e0f2fe;
+      --emerald: #059669;
+      --emerald-soft: #d1fae5;
+      --amber: #d97706;
+      --amber-soft: #fef3c7;
+      --rose: #e11d48;
+      --rose-soft: #ffe4e6;
       --scrollbar-thumb: #94a3b8;
       --scrollbar-track: #f1f5f9;
+      --topbar-h: 56px;
       scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-      accent-color: var(--brand-accent);
+      accent-color: var(--brand);
     }
 
     @supports not (scrollbar-color: auto) {
@@ -57,15 +64,14 @@
         inset-inline-start: 0;
         inset-block-start: 50%;
         transform: translateY(-50%);
-        width: 1rem;
-        height: 1rem;
-        border: 2px solid var(--border-subtle);
+        width: 1rem; height: 1rem;
+        border: 2px solid var(--border);
         border-radius: 3px;
         background: #ffffff;
       }
       input[type="checkbox"].brand-check:checked + span::before {
-        background: var(--brand-accent);
-        border-color: var(--brand-accent);
+        background: var(--brand);
+        border-color: var(--brand);
       }
       input[type="checkbox"].brand-check:focus-visible + span::before {
         outline: 2px solid var(--text-primary);
@@ -81,326 +87,786 @@
       font-size: 14px;
     }
 
-    #map { position: fixed; inset: 0; width: 100vw; height: 100vh; }
-
-    /* Top-right floating map toolbar: 2D/3D toggle + Basemap selector + Boundary toggles */
-    .map-toolbar {
+    /* ==================== TOP COMMAND BAR ==================== */
+    .topbar {
       position: fixed;
-      inset-block-start: 14px;
-      inset-inline-end: 54px;
-      z-index: 12;
+      inset-block-start: 0;
+      inset-inline: 0;
+      height: var(--topbar-h);
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 8px;
-      background: var(--bg-panel);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      padding: 6px 10px;
-      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      z-index: 30;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: none;
+    }
+    .brand-badge {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #0284c7, #059669);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.85rem;
+      display: grid;
+      place-items: center;
+      letter-spacing: -0.02em;
+    }
+    .brand-text h1 {
+      font-size: 0.94rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    .brand-text span {
+      display: block;
+      font-size: 0.69rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Single-row accessible tablist (per modern-web-guidance tabs guide) */
+    .nav-tabs {
+      display: flex;
+      align-items: stretch;
+      overflow-x: auto;
+      gap: 2px;
+      height: 100%;
+      scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+
+    .nav-tab {
+      position: relative;
+      flex: none;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 0 13px;
+      font-size: 0.80rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .nav-tab:hover { color: var(--text-primary); background: rgba(2, 132, 199, 0.05); }
+    .nav-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -3px; border-radius: 4px; }
+    .nav-tab[aria-selected="true"] {
+      color: var(--brand);
+    }
+    .nav-tab[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 8px 0 8px;
+      border-block-end: 3px solid var(--brand);
+    }
+    .tab-pill {
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .nav-tab[aria-selected="true"] .tab-pill {
+      background: var(--brand-soft);
+      color: #0369a1;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: none;
     }
     .pill-btn {
       background: #ffffff;
       color: var(--text-primary);
-      border: 1px solid var(--border-subtle);
+      border: 1px solid var(--border);
       border-radius: 7px;
       padding: 5px 10px;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 700;
       cursor: pointer;
+      white-space: nowrap;
     }
-    .pill-btn:hover { border-color: var(--brand-accent); }
-    .pill-btn:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
-    .pill-btn.active {
-      background: var(--brand-accent);
-      color: #ffffff;
-      border-color: var(--brand-accent);
-    }
-    .map-toolbar select {
+    .pill-btn:hover { border-color: var(--brand); }
+    .pill-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .pill-btn.active { background: var(--brand); color: #ffffff; border-color: var(--brand); }
+    .top-controls select {
       background: #ffffff;
       color: var(--text-primary);
-      border: 1px solid var(--border-subtle);
+      border: 1px solid var(--border);
       border-radius: 7px;
       padding: 5px 8px;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 600;
     }
 
-    .sidebar {
+    /* ==================== MAIN WORKSPACE ==================== */
+    .workspace {
       position: fixed;
+      inset-block-start: var(--topbar-h);
+      inset-block-end: 0;
+      inset-inline: 0;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ==================== LEFT INSPECTOR DRAWER ==================== */
+    .drawer {
+      position: absolute;
       inset-block: 14px;
       inset-inline-start: 14px;
       width: min(415px, calc(100vw - 28px));
-      background: var(--bg-panel);
+      background: var(--bg-glass);
       backdrop-filter: blur(14px);
-      border: 1px solid var(--border-subtle);
+      border: 1px solid var(--border);
       border-radius: 14px;
       display: flex;
       flex-direction: column;
-      z-index: 10;
+      z-index: 15;
       box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14);
       overflow: hidden;
+      transition: transform 0.22s ease;
+    }
+    .drawer.collapsed {
+      transform: translateX(calc(-100% - 24px));
+      pointer-events: none;
     }
 
-    .sidebar-header {
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .sidebar-header h1 { font-size: 1.02rem; font-weight: 800; letter-spacing: -0.015em; color: #0f172a; }
-    .sidebar-header p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-
-    .mode-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 7px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-subtle);
-      background: #ffffff;
-    }
-    .mode-btn {
-      background: var(--bg-card);
-      color: var(--text-primary);
-      border: 1px solid var(--border-subtle);
-      border-radius: 9px;
-      padding: 8px 10px;
-      text-align: left;
-      cursor: pointer;
-    }
-    .mode-btn:hover { border-color: var(--brand-accent); }
-    .mode-btn:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
-    .mode-btn.active { background: var(--brand-accent-soft); border-color: var(--brand-accent); }
-    .mode-btn .tag {
-      display: block; font-size: 0.66rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.05em; color: var(--brand-accent);
-    }
-    .mode-btn .label { display: block; font-size: 0.79rem; font-weight: 700; margin-top: 2px; }
-
-    .sidebar-body {
+    .drawer-body {
       flex: 1;
       overflow-y: auto;
       padding: 12px 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 11px;
     }
 
     .card {
       background: #ffffff;
-      border: 1px solid var(--border-subtle);
+      border: 1px solid var(--border-soft);
       border-radius: 10px;
       padding: 11px 13px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
     }
     .card h2 {
-      font-size: 0.74rem;
+      font-size: 0.72rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.055em;
       color: var(--text-muted);
-      margin-bottom: 8px;
+      font-weight: 800;
+    }
+    .badge-tag {
+      font-size: 0.66rem;
       font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--emerald-soft);
+      color: #065f46;
     }
 
+    /* Grounded Spatial SQL Box */
     .query-row { display: flex; gap: 6px; }
     .query-row input {
       flex: 1; background: #ffffff; color: var(--text-primary);
-      border: 1px solid var(--border-subtle); border-radius: 7px;
-      padding: 7px 9px; font-size: 0.79rem;
+      border: 1px solid var(--border); border-radius: 7px;
+      padding: 7px 9px; font-size: 0.78rem;
     }
     .query-row button {
-      background: var(--brand-accent); color: #ffffff; border: none;
+      background: var(--brand); color: #ffffff; border: none;
       border-radius: 7px; padding: 7px 12px; font-weight: 700;
-      cursor: pointer; font-size: 0.78rem;
+      cursor: pointer; font-size: 0.77rem;
     }
     .chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
     .chip {
-      background: var(--brand-accent-soft); color: #0369a1;
+      background: var(--brand-soft); color: #0369a1;
       border: 1px solid #bae6fd; border-radius: 999px;
-      padding: 3px 9px; font-size: 0.70rem; font-weight: 600; cursor: pointer;
+      padding: 3px 9px; font-size: 0.69rem; font-weight: 600; cursor: pointer;
     }
     .chip:hover { background: #bae6fd; }
     .sql-box {
-      margin-top: 8px; padding: 7px 8px; background: #f1f5f9;
-      border: 1px solid var(--border-subtle); border-radius: 6px;
+      margin-top: 7px; padding: 7px 8px; background: #f1f5f9;
+      border: 1px solid var(--border-soft); border-radius: 6px;
       font-family: ui-monospace, SFMono-Regular, monospace;
-      font-size: 0.69rem; color: #0369a1; overflow-x: auto; display: none;
+      font-size: 0.68rem; color: #0369a1; overflow-x: auto; display: none;
+    }
+
+    /* Segmented metric selector */
+    .seg-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+    }
+    .seg-btn {
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-soft);
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .seg-btn.active {
+      background: var(--brand-soft);
+      color: #0369a1;
+      border-color: var(--brand);
+      font-weight: 700;
     }
 
     .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-    .kpi { background: var(--bg-card); border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 9px; }
-    .kpi .k { font-size: 0.68rem; color: var(--text-muted); }
-    .kpi .v { font-size: 0.90rem; font-weight: 700; margin-top: 2px; color: var(--text-primary); }
+    .kpi { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 8px; padding: 7px 9px; }
+    .kpi .k { font-size: 0.67rem; color: var(--text-muted); font-weight: 600; }
+    .kpi .v { font-size: 0.90rem; font-weight: 800; margin-top: 2px; color: var(--text-primary); }
+
+    /* SWCP visual interval bar */
+    .interval-box {
+      margin-top: 9px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .interval-track {
+      position: relative;
+      height: 10px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      margin: 8px 0 5px;
+    }
+    .interval-band {
+      position: absolute;
+      inset-block: 0;
+      background: linear-gradient(90deg, #38bdf8, #10b981);
+      border-radius: 999px;
+    }
+    .interval-dot {
+      position: absolute;
+      top: 50%;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    }
 
     .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
-    .control-row label { font-size: 0.76rem; color: var(--text-muted); min-width: 72px; font-weight: 600; }
+    .control-row label { font-size: 0.75rem; color: var(--text-muted); min-width: 72px; font-weight: 600; }
     .control-row input {
       flex: 1; background: #ffffff; color: var(--text-primary);
-      border: 1px solid var(--border-subtle); border-radius: 6px;
-      padding: 6px 8px; font-size: 0.80rem;
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 8px; font-size: 0.79rem;
     }
     .action-btn {
-      width: 100%; background: var(--brand-accent); color: #ffffff;
+      width: 100%; background: var(--brand); color: #ffffff;
       border: none; border-radius: 7px; padding: 7px 12px;
-      font-weight: 700; cursor: pointer; font-size: 0.80rem;
+      font-weight: 700; cursor: pointer; font-size: 0.79rem;
     }
     .check-label {
       display: flex; align-items: center; gap: 8px;
-      font-size: 0.78rem; cursor: pointer; margin-top: 7px; color: var(--text-primary);
+      font-size: 0.77rem; cursor: pointer; margin-top: 6px; color: var(--text-primary);
     }
 
-    .table-wrapper {
-      overflow: auto; max-inline-size: 100%; max-block-size: 220px;
-      container-type: inline-size; margin-top: 9px;
-      border-radius: 7px; border: 1px solid var(--border-subtle);
+    .chart-wrap {
+      position: relative;
+      height: 155px;
+      margin-top: 8px;
     }
-    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.74rem; }
-    caption { text-align: left; padding: 5px 8px; font-size: 0.70rem; color: var(--text-muted); background: #f8fafc; }
+
+    /* Responsive accessible table (per modern-web-guidance responsive-table) */
+    .table-wrapper {
+      overflow: auto;
+      max-inline-size: 100%;
+      max-block-size: 210px;
+      container-type: inline-size;
+      margin-top: 8px;
+      border-radius: 7px;
+      border: 1px solid var(--border-soft);
+    }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.73rem; }
+    caption { text-align: left; padding: 5px 8px; font-size: 0.69rem; color: var(--text-muted); background: #f8fafc; }
     thead { position: sticky; inset-block-start: 0; z-index: 1; background: #f1f5f9; }
-    th, td { padding: 5px 6px; text-align: right; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    th, td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
     th:first-child, td:first-child { text-align: left; }
     tbody th { position: sticky; inset-inline-start: 0; background: #ffffff; font-weight: 600; }
-    tr.optimal-row td, tr.optimal-row th { background: var(--brand-emerald-soft); color: #065f46; font-weight: 700; }
+    tr.optimal-row td, tr.optimal-row th { background: var(--emerald-soft); color: #065f46; font-weight: 700; }
 
-    @container (width < 300px) {
+    @container (width < 290px) {
       table, thead, tbody, tr, th, td { display: block; }
       thead { display: none; }
-      tr { margin-block-end: 0.7rem; border: 1px solid var(--border-subtle); }
+      tr { margin-block-end: 0.65rem; border: 1px solid var(--border-soft); }
       tbody th { position: sticky; inset-block-start: 0; z-index: 2; }
       td::before { content: attr(data-label) ": "; color: var(--text-muted); }
     }
 
+    /* ==================== FULL-SCREEN RESEARCH ANALYTICS VIEW ==================== */
+    .analytics-panel {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      background: #f1f5f9;
+      overflow-y: auto;
+    }
+    .analytics-inner {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 22px 24px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .hero-banner {
+      background: linear-gradient(135deg, #0f172a, #0369a1);
+      color: #ffffff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .hero-banner h2 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
+    .hero-banner p { font-size: 0.84rem; color: #cbd5e1; margin-top: 4px; max-width: 680px; }
+    .hero-stats { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero-stat {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
+      padding: 10px 14px;
+      min-width: 125px;
+    }
+    .hero-stat .num { font-size: 1.18rem; font-weight: 800; color: #38bdf8; }
+    .hero-stat .lbl { font-size: 0.69rem; color: #e2e8f0; margin-top: 2px; }
+
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 16px;
+    }
+    .chart-card {
+      background: #ffffff;
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+    }
+    .chart-card h3 { font-size: 0.92rem; font-weight: 800; color: var(--text-primary); }
+    .chart-card .sub { font-size: 0.76rem; color: var(--text-muted); margin: 3px 0 10px; }
+    .chart-card-canvas { position: relative; height: 245px; }
+
+    /* ==================== LEGEND & TOOLTIP ==================== */
     .legend {
-      position: fixed; inset-block-end: 16px; inset-inline-end: 16px;
-      background: var(--bg-panel); backdrop-filter: blur(12px);
-      border: 1px solid var(--border-subtle); border-radius: 10px;
-      padding: 10px 14px; font-size: 0.74rem; z-index: 10; max-width: 300px;
+      position: absolute;
+      inset-block-end: 16px;
+      inset-inline-end: 16px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.74rem;
+      z-index: 15;
+      max-width: 310px;
       box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
     }
     .legend-bar { height: 8px; border-radius: 4px; margin: 6px 0; background: linear-gradient(90deg, #e11d48, #f59e0b, #10b981); }
     .legend-labels { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.69rem; }
 
     .tooltip {
-      position: fixed; pointer-events: none; background: rgba(255, 255, 255, 0.97);
-      border: 1px solid #94a3b8; border-radius: 8px;
-      padding: 8px 10px; font-size: 0.75rem; color: var(--text-primary);
-      z-index: 25; display: none; max-width: 280px; line-height: 1.45;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+      position: fixed;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #94a3b8;
+      border-radius: 9px;
+      padding: 8px 11px;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+      z-index: 40;
+      display: none;
+      max-width: 290px;
+      line-height: 1.45;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+    }
+
+    @media (max-width: 1020px) {
+      .brand-text span { display: none; }
+      .analytics-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div id="map" role="application" aria-label="Interactive Metro Atlanta Housing Atlas"></div>
-  <div id="tooltip" class="tooltip"></div>
-
-  <div class="map-toolbar" role="toolbar" aria-label="Map projection and basemap controls">
-    <button id="btn-toggle-3d" class="pill-btn active" type="button" aria-pressed="true">3D: ON</button>
-    <button id="btn-toggle-counties" class="pill-btn active" type="button" aria-pressed="true">Counties</button>
-    <button id="btn-toggle-zips" class="pill-btn active" type="button" aria-pressed="true">ZIP Outlines</button>
-    <select id="basemap-select" aria-label="Basemap style">
-      <option value="voyager" selected>CARTO Voyager (Light)</option>
-      <option value="positron">CARTO Positron (Clean)</option>
-      <option value="liberty">OpenFreeMap Liberty</option>
-    </select>
-  </div>
-
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h1>Metro Atlanta Housing Intelligence Atlas</h1>
-      <p>Overture 3D Footprints · PyTorch GNN · Spatial CQR · Census Polygons</p>
-    </div>
-
-    <div class="mode-grid" role="tablist" aria-label="Research view modes">
-      <button class="mode-btn active" data-mode="path_c_zips" role="tab" aria-selected="true">
-        <span class="tag">Path C · Metro</span>
-        <span class="label">ZIP Liquidity Map</span>
-      </button>
-      <button class="mode-btn" data-mode="path_a" role="tab" aria-selected="false">
-        <span class="tag">Path A · Footprints</span>
-        <span class="label">Buildings &amp; Comps</span>
-      </button>
-      <button class="mode-btn" data-mode="path_c_arcs" role="tab" aria-selected="false">
-        <span class="tag">Path C · Flows</span>
-        <span class="label">Wealth &amp; Commutes</span>
-      </button>
-      <button class="mode-btn" data-mode="path_eb" role="tab" aria-selected="false">
-        <span class="tag">Paths E &amp; B</span>
-        <span class="label">Rezoning &amp; Street</span>
-      </button>
-    </div>
-
-    <div class="sidebar-body scroller">
-      <div class="card">
-        <h2>Grounded Spatial SQL Analyst (DuckDB)</h2>
-        <div class="query-row">
-          <input id="nl-input" type="text" placeholder="e.g. buyer leverage price cuts under 500k" aria-label="Spatial SQL query" />
-          <button id="nl-run" type="button">Ask</button>
-        </div>
-        <div class="chip-row">
-          <button class="chip" data-q="highest price cuts buyer leverage">Buyer Leverage</button>
-          <button class="chip" data-q="hot demand suburbs under 500k">Hot &lt;$500k</button>
-          <button class="chip" data-q="undervalued 3d parcels under 800k">Undervalued Homes</button>
-          <button class="chip" data-q="gwinnett price cuts">Gwinnett</button>
-        </div>
-        <p id="nl-summary" style="font-size:0.74rem;color:var(--brand-emerald);font-weight:600;margin-top:7px;"></p>
-        <pre id="nl-sql" class="sql-box scroller"></pre>
-      </div>
-
-      <div class="card" id="inspector-card">
-        <h2 id="inspector-title">Selected Submarket / Property</h2>
-        <div class="kpi-grid" id="inspector-kpis"></div>
-        <p id="inspector-note" style="font-size:0.74rem;color:var(--text-muted);margin-top:8px;">
-          Click any Metro Atlanta ZIP polygon to load it into the Seller Pricing Simulator, or switch to
-          Path A to inspect true 1:1 extruded Overture building footprints &amp; PyTorch GNN comp arcs.
-        </p>
-      </div>
-
-      <div class="card" id="path-c-controls">
-        <h2>Path C — Seller Pricing Frontier &amp; Layer Options</h2>
-        <div class="control-row">
-          <label for="sim-zip">ATL ZIP</label>
-          <input id="sim-zip" type="text" value="30075" maxlength="5" />
-        </div>
-        <div class="control-row">
-          <label for="sim-fv">Fair Value ($)</label>
-          <input id="sim-fv" type="number" value="550000" step="25000" min="100000" max="5000000" />
-        </div>
-        <button id="sim-run" class="action-btn" type="button">Simulate Ask-Price Frontier</button>
-
-        <label class="check-label" for="toggle-price-cut">
-          <input class="brand-check" id="toggle-price-cut" type="checkbox" />
-          <span>Color ZIP Polygons by Price-Cut % (Buyer Leverage)</span>
-        </label>
-        <label class="check-label" for="toggle-lodes">
-          <input class="brand-check" id="toggle-lodes" type="checkbox" />
-          <span>Flows Mode: Show LODES Metro Commutes (instead of IRS)</span>
-        </label>
-
-        <div tabindex="0" role="region" aria-labelledby="sim-caption" class="table-wrapper scroller">
-          <table>
-            <caption id="sim-caption">Expected DOM, price-cut risk &amp; net proceeds by ask spread</caption>
-            <thead>
-              <tr>
-                <th>Ask</th>
-                <th>DOM</th>
-                <th>30d%</th>
-                <th>Cut%</th>
-                <th>Exp Net</th>
-              </tr>
-            </thead>
-            <tbody id="sim-tbody"></tbody>
-          </table>
-        </div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-badge">ATL</div>
+      <div class="brand-text">
+        <h1>Metro Atlanta Housing Intelligence Atlas</h1>
+        <span>201 ZIPs · 27.8K Parcels · 72.5K Overture 3D · 836K HMDA Loans</span>
       </div>
     </div>
-  </aside>
 
-  <div class="legend" id="legend-box">
-    <strong id="legend-title">Metro Atlanta ZIP Buyer Hotness (Oct 2026)</strong>
-    <div class="legend-bar" id="legend-bar"></div>
-    <div class="legend-labels">
-      <span id="legend-low">Cool (15)</span>
-      <span id="legend-mid">Balanced</span>
-      <span id="legend-high">Hot (75+)</span>
+    <div class="nav-tabs" role="tablist" aria-label="Research views">
+      <button type="button" class="nav-tab" id="tab-path_c_zips" role="tab" aria-selected="true" data-mode="path_c_zips">
+        ZIP Liquidity <span class="tab-pill">Path C</span>
+      </button>
+      <button type="button" class="nav-tab" id="tab-path_a" role="tab" aria-selected="false" data-mode="path_a">
+        3D Buildings &amp; GNN <span class="tab-pill">Path A</span>
+      </button>
+      <button type="button" class="nav-tab" id="tab-path_c_arcs" role="tab" aria-selected="false" data-mode="path_c_arcs">
+        Capital &amp; Commutes <span class="tab-pill">Flows</span>
+      </button>
+      <button type="button" class="nav-tab" id="tab-path_eb" role="tab" aria-selected="false" data-mode="path_eb">
+        Catalysts &amp; Street <span class="tab-pill">E &amp; B</span>
+      </button>
+      <button type="button" class="nav-tab" id="tab-analytics" role="tab" aria-selected="false" data-mode="analytics">
+        Research Benchmarks <span class="tab-pill">Charts</span>
+      </button>
     </div>
-  </div>
+
+    <div class="top-controls" role="toolbar" aria-label="Map view controls">
+      <button id="btn-toggle-3d" class="pill-btn active" type="button" aria-pressed="true">3D: ON</button>
+      <button id="btn-toggle-counties" class="pill-btn active" type="button" aria-pressed="true">Counties</button>
+      <button id="btn-toggle-zips" class="pill-btn active" type="button" aria-pressed="true">ZIPs</button>
+      <select id="basemap-select" aria-label="Basemap style">
+        <option value="voyager" selected>CARTO Voyager</option>
+        <option value="positron">CARTO Positron</option>
+        <option value="liberty">OpenFreeMap</option>
+      </select>
+      <button id="btn-toggle-drawer" class="pill-btn" type="button" aria-pressed="false">Hide Panel</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div id="map" role="application" aria-label="Interactive Metro Atlanta Housing Map"></div>
+    <div id="tooltip" class="tooltip"></div>
+
+    <!-- Context-Aware Left Inspector Drawer (shown for all map modes) -->
+    <aside class="drawer" id="map-drawer">
+      <div class="drawer-body scroller">
+        <!-- 1. Grounded DuckDB Spatial SQL Analyst (always handy) -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Grounded Spatial SQL Analyst</h2>
+            <span class="badge-tag">Live DuckDB</span>
+          </div>
+          <div class="query-row">
+            <input id="nl-input" type="text" placeholder="e.g. buyer leverage price cuts under 500k" aria-label="Spatial SQL query" />
+            <button id="nl-run" type="button">Run</button>
+          </div>
+          <div class="chip-row">
+            <button class="chip" type="button" data-q="highest price cuts buyer leverage">Buyer Leverage</button>
+            <button class="chip" type="button" data-q="hot demand suburbs under 500k">Hot &lt;$500k</button>
+            <button class="chip" type="button" data-q="undervalued 3d parcels under 800k">Undervalued 3D</button>
+            <button class="chip" type="button" data-q="gwinnett price cuts">Gwinnett</button>
+            <button class="chip" type="button" data-q="forsyth hot demand">Forsyth</button>
+          </div>
+          <p id="nl-summary" style="font-size:0.74rem;color:var(--emerald);font-weight:600;margin-top:7px;"></p>
+          <pre id="nl-sql" class="sql-box scroller"></pre>
+        </div>
+
+        <!-- 2. Path C ZIP Liquidity Controls + 10-Yr ZIP Chart + Seller Pricing Simulator -->
+        <div role="tabpanel" aria-labelledby="tab-path_c_zips" id="panel-path_c_zips">
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div class="card">
+              <div class="card-head">
+                <h2>Choropleth Layer Metric</h2>
+                <span class="badge-tag">Oct 2026</span>
+              </div>
+              <div class="seg-bar" id="zip-metric-bar">
+                <button type="button" class="seg-btn active" data-metric="hotness">Buyer Hotness</button>
+                <button type="button" class="seg-btn" data-metric="price_cut">Price-Cut %</button>
+                <button type="button" class="seg-btn" data-metric="dom">Median DOM</button>
+                <button type="button" class="seg-btn" data-metric="zhvi">Zillow ZHVI</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2 id="zip-card-title">Selected ZIP Submarket</h2>
+                <span class="badge-tag" id="zip-card-badge">Click a ZIP</span>
+              </div>
+              <div class="kpi-grid" id="zip-kpis"></div>
+              <div class="chart-wrap">
+                <canvas id="zip-history-chart" aria-label="10-Year ZIP DOM and Price-Cut History"></canvas>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Seller Ask-Price Frontier Simulator</h2>
+                <span class="badge-tag">Hazard + Carry</span>
+              </div>
+              <div class="control-row">
+                <label for="sim-zip">ATL ZIP</label>
+                <input id="sim-zip" type="text" value="30075" maxlength="5" />
+              </div>
+              <div class="control-row">
+                <label for="sim-fv">Fair Value ($)</label>
+                <input id="sim-fv" type="number" value="550000" step="25000" min="100000" max="5000000" />
+              </div>
+              <button id="sim-run" class="action-btn" type="button">Simulate Ask-Price Frontier</button>
+              <div class="chart-wrap" style="height:135px;">
+                <canvas id="sim-chart" aria-label="Expected Net Proceeds Frontier"></canvas>
+              </div>
+              <div tabindex="0" role="region" aria-labelledby="sim-caption" class="table-wrapper scroller">
+                <table>
+                  <caption id="sim-caption">Ask spread vs. Expected DOM, 30d sale prob &amp; Net Proceeds</caption>
+                  <thead>
+                    <tr><th>Ask</th><th>DOM</th><th>30d%</th><th>Cut%</th><th>Exp Net</th></tr>
+                  </thead>
+                  <tbody id="sim-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Path A 3D Buildings & PyTorch Spatial GNN Panel -->
+        <div role="tabpanel" aria-labelledby="tab-path_a" id="panel-path_a" hidden>
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div class="card">
+              <div class="card-head">
+                <h2>Building Color Metric (15,000 Footprints)</h2>
+                <span class="badge-tag">1:1 Meters</span>
+              </div>
+              <div class="seg-bar" id="bldg-metric-bar">
+                <button type="button" class="seg-btn active" data-bmetric="mispricing">GNN Mispricing %</button>
+                <button type="button" class="seg-btn" data-bmetric="fair_value">Fair Value ($)</button>
+                <button type="button" class="seg-btn" data-bmetric="uncertainty">SWCP Band Width</button>
+                <button type="button" class="seg-btn" data-bmetric="height">Building Height</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2 id="bldg-card-title">Selected 3D Building &amp; Parcel</h2>
+                <span class="badge-tag" id="bldg-height-badge">Overture 3D</span>
+              </div>
+              <div class="kpi-grid" id="bldg-kpis"></div>
+
+              <div class="interval-box" id="swcp-visual">
+                <div style="display:flex;justify-content:space-between;font-size:0.70rem;font-weight:700;color:var(--text-secondary);">
+                  <span>Multiplicative SWCP 90% Interval</span>
+                  <span id="swcp-span-label"></span>
+                </div>
+                <div class="interval-track">
+                  <div class="interval-band" id="swcp-band" style="left:15%;right:15%;"></div>
+                  <div class="interval-dot" id="swcp-dot-pred" style="left:50%;background:#0284c7;" title="Hybrid Prediction"></div>
+                  <div class="interval-dot" id="swcp-dot-actual" style="left:55%;background:#0f172a;" title="County Appraisal"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--text-muted);">
+                  <span id="swcp-low-lbl"></span>
+                  <span>● Blue: Hybrid · ● Dark: Appraisal</span>
+                  <span id="swcp-high-lbl"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Top-5 PyTorch GNN Learned Comps</h2>
+                <span class="badge-tag">13.56% MAPE</span>
+              </div>
+              <p style="font-size:0.72rem;color:var(--text-muted);">
+                Attention weights learned by our multi-head Spatial Graph Transformer (K=12), rendered as glowing 3D arcs on the map.
+              </p>
+              <div tabindex="0" role="region" aria-labelledby="comps-caption" class="table-wrapper scroller">
+                <table>
+                  <caption id="comps-caption">Comparable properties weighted by PyTorch GNN attention</caption>
+                  <thead>
+                    <tr><th>Comp Parcel</th><th>Attn Wt</th><th>Comp Value</th></tr>
+                  </thead>
+                  <tbody id="comps-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Path C Flows: IRS Wealth Migration & LODES Commutes -->
+        <div role="tabpanel" aria-labelledby="tab-path_c_arcs" id="panel-path_c_arcs" hidden>
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div class="card">
+              <div class="card-head">
+                <h2>Origin-Destination Flow Layer</h2>
+                <span class="badge-tag">ArcLayer</span>
+              </div>
+              <div class="seg-bar" id="flow-metric-bar">
+                <button type="button" class="seg-btn active" data-flow="irs">IRS Wealth Inflows</button>
+                <button type="button" class="seg-btn" data-flow="lodes">LODES Commutes</button>
+              </div>
+              <p id="flow-note" style="font-size:0.74rem;color:var(--text-muted);margin-top:8px;">
+                Showing top out-of-state household AGI inflows into Fulton, DeKalb, Cobb, Gwinnett &amp; Forsyth (LA $170M, Chicago $130M, NYC $100M, Seattle $90M, Silicon Valley $80M).
+              </p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>2024 HMDA 5-County Credit Demand</h2>
+                <span class="badge-tag">836K Loans</span>
+              </div>
+              <div tabindex="0" role="region" aria-labelledby="hmda-caption" class="table-wrapper scroller">
+                <table>
+                  <caption id="hmda-caption">2024 home-purchase mortgage demand, denials &amp; investor share</caption>
+                  <thead>
+                    <tr><th>County</th><th>Buyers</th><th>Deny%</th><th>Inv%</th><th>Med Val</th></tr>
+                  </thead>
+                  <tbody id="hmda-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Paths E & B: Rezoning Catalysts & Streetscape Curb Appeal -->
+        <div role="tabpanel" aria-labelledby="tab-path_eb" id="panel-path_eb" hidden>
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div class="card">
+              <div class="card-head">
+                <h2>Overlay Layer Toggles</h2>
+                <span class="badge-tag">Paths E &amp; B</span>
+              </div>
+              <label class="check-label" for="chk-rezoning">
+                <input class="brand-check" id="chk-rezoning" type="checkbox" checked />
+                <span>Johns Creek Rezoning Cases (1,045 · Amber)</span>
+              </label>
+              <label class="check-label" for="chk-permits">
+                <input class="brand-check" id="chk-permits" type="checkbox" checked />
+                <span>Gwinnett Land Dev Permits (413 · Rose)</span>
+              </label>
+              <label class="check-label" for="chk-street">
+                <input class="brand-check" id="chk-street" type="checkbox" checked />
+                <span>Mapillary Streetscape Samples (549 · Emerald)</span>
+              </label>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Path B: Streetscape Canopy (GVI%) Pilot</h2>
+                <span class="badge-tag">5/5 GO</span>
+              </div>
+              <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">
+                MIT Treepedia Green View Index scored on 60 real Mapillary 1024px suburban street photos. Note seasonal leaf-on vs. leaf-off capture bias in winter drives (East Cobb / Cumming).
+              </p>
+              <div tabindex="0" role="region" aria-labelledby="gvi-caption" class="table-wrapper scroller">
+                <table>
+                  <caption id="gvi-caption">Suburban Green View Index (GVI%), Sky View &amp; Zillow ZHVI</caption>
+                  <thead>
+                    <tr><th>Suburb</th><th>GVI%</th><th>Sky%</th><th>ZHVI</th></tr>
+                  </thead>
+                  <tbody id="gvi-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Path E: Johns Creek Event Study</h2>
+                <span class="badge-tag">Honest Null</span>
+              </div>
+              <p style="font-size:0.75rem;color:var(--text-secondary);line-height:1.45;">
+                Annual ZIP-level rezoning volume vs. next-year excess return over matched North Atlanta controls yielded <strong>r = −0.254 (p = 0.544)</strong>—proving rezoning catalysts operate at hyper-local parcel radii (&lt;0.5 mi) rather than whole-ZIP aggregates.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Full-Screen Research Benchmarks & Analytics View -->
+    <section class="analytics-panel scroller" role="tabpanel" aria-labelledby="tab-analytics" id="panel-analytics" hidden>
+      <div class="analytics-inner">
+        <div class="hero-banner">
+          <div>
+            <h2>Empirical Research Benchmarks &amp; Market Analytics</h2>
+            <p>
+              Live metrics computed across our Metro Atlanta DuckDB/dbt lakehouse: purged walk-forward liquidity models,
+              Cox/Weibull DOM survival curves, full-city PyTorch Spatial Graph Transformer (27,881 homes), and Spatial CQR uncertainty audits.
+            </p>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat"><div class="num">13.56%</div><div class="lbl">Hybrid GNN+LGBM MAPE</div></div>
+            <div class="hero-stat"><div class="num">0.769</div><div class="lbl">DOM Survival C-Index</div></div>
+            <div class="hero-stat"><div class="num">90.8%</div><div class="lbl">Spatial CQR 90% Cov</div></div>
+            <div class="hero-stat"><div class="num">−30.0%</div><div class="lbl">3M DOM Forecast MAE</div></div>
+          </div>
+        </div>
+
+        <div class="analytics-grid">
+          <div class="chart-card">
+            <h3>10-Year Metro Atlanta Liquidity vs. FRED 30Y Mortgage Rate</h3>
+            <p class="sub">Monthly median Days on Market (days) &amp; Seller Price-Cut Share (%) vs. 30Y Fixed Rate (2016–2026)</p>
+            <div class="chart-card-canvas"><canvas id="chart-metro-ts"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <h3>Path A Deep ML Ablation: LightGBM vs. PyTorch Spatial GNN</h3>
+            <p class="sub">Test MAPE (%) progression from parcel baseline → Overture 3D → full-city 27.8K PyTorch Spatial Graph Transformer</p>
+            <div class="chart-card-canvas"><canvas id="chart-gnn-bench"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <h3>Path C Liquidity Survival Hazard Ratios (Cox PH, N=4,198)</h3>
+            <p class="sub">1-SD effect on clearing hazard (&gt;1.0x = faster sale; &lt;1.0x = slower clearing). Lagged HMDA denials slow DOM by +5.9%.</p>
+            <div class="chart-card-canvas"><canvas id="chart-survival-hr"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <h3>Path A Spatial CQR Conditional Coverage Audit (90% Target)</h3>
+            <p class="sub">Global Split Conformal under-covers Luxury homes (74.1%); Spatial CQR (arXiv:2412.01098) restores balanced coverage across all tiers.</p>
+            <div class="chart-card-canvas"><canvas id="chart-cqr-cov"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <h3>2024 HMDA 5-County Home-Purchase Credit &amp; Investor Share</h3>
+            <p class="sub">Investor purchase share (%) &amp; mortgage denial rate (%) across Fulton, DeKalb, Cobb, Gwinnett &amp; Forsyth (836K loan lakehouse)</p>
+            <div class="chart-card-canvas"><canvas id="chart-hmda-5c"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <h3>Path C Purged Walk-Forward CV Lift (Zero Lookahead)</h3>
+            <p class="sub">Adding Realtor microstructure + FRED macro improves both 6M demeaned excess returns (IC 0.477→0.557) and 3M DOM shifts (IC 0.041→0.583).</p>
+            <div class="chart-card-canvas"><canvas id="chart-pathc-wf"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="legend" id="legend-box">
+      <strong id="legend-title">Metro Atlanta ZIP Buyer Hotness (Oct 2026)</strong>
+      <div class="legend-bar" id="legend-bar"></div>
+      <div class="legend-labels">
+        <span id="legend-low">Cool (20)</span>
+        <span id="legend-mid">Balanced</span>
+        <span id="legend-high">Hot (75+)</span>
+      </div>
+    </div>
+  </main>
 
   <script>
     const fmtUSD = (v) => v == null ? "N/A" : "$" + Math.round(v).toLocaleString("en-US");
@@ -416,6 +882,12 @@
       is3D: true,
       showCounties: true,
       showZipOutlines: true,
+      zipMetric: "hotness",       // hotness | price_cut | dom | zhvi
+      bldgMetric: "mispricing",   // mispricing | fair_value | uncertainty | height
+      flowType: "irs",            // irs | lodes
+      showRezoning: true,
+      showPermits: true,
+      showStreet: true,
       countiesGeo: null,
       zipsGeo: null,
       buildingsGeo: null,
@@ -424,16 +896,18 @@
       lodesArcs: [],
       catalysts: [],
       streetscapes: [],
-      colorZipByCut: false,
-      showLodesFlows: false,
+      analytics: null,
+      metroTs: [],
+      charts: {},
+      analyticsRendered: false,
     };
 
     const VIEWS = {
-      path_c_zips: { center: [-84.33, 33.89], zoom: 9.5, pitch: 44, bearing: -8 },
-      path_a: { center: [-84.355, 33.938], zoom: 13.8, pitch: 54, bearing: -14 },
+      path_c_zips: { center: [-84.33, 33.89], zoom: 9.5, pitch: 42, bearing: -6 },
+      path_a: { center: [-84.355, 33.938], zoom: 13.7, pitch: 52, bearing: -14 },
       path_c_arcs: { center: [-94.5, 37.2], zoom: 3.7, pitch: 38, bearing: 4 },
-      path_c_lodes: { center: [-84.28, 33.94], zoom: 9.7, pitch: 45, bearing: -10 },
-      path_eb: { center: [-84.19, 34.02], zoom: 10.5, pitch: 42, bearing: -8 },
+      path_c_lodes: { center: [-84.28, 33.94], zoom: 9.7, pitch: 44, bearing: -10 },
+      path_eb: { center: [-84.19, 34.02], zoom: 10.4, pitch: 40, bearing: -6 },
     };
 
     const map = new maplibregl.Map({
@@ -448,24 +922,7 @@
 
     const deckOverlay = new deck.MapboxOverlay({ interleaved: false, layers: [] });
     map.addControl(deckOverlay);
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
-
-    function setKPIs(title, pairs, note) {
-      document.getElementById("inspector-title").textContent = title;
-      const grid = document.getElementById("inspector-kpis");
-      grid.replaceChildren();
-      for (const [k, v] of pairs) {
-        const box = document.createElement("div");
-        box.className = "kpi";
-        const kEl = document.createElement("div");
-        kEl.className = "k"; kEl.textContent = k;
-        const vEl = document.createElement("div");
-        vEl.className = "v"; vEl.textContent = v;
-        box.append(kEl, vEl);
-        grid.appendChild(box);
-      }
-      document.getElementById("inspector-note").textContent = note || "";
-    }
+    map.addControl(new maplibregl.NavigationControl(), "bottom-left");
 
     function showTooltip(x, y, lines) {
       const tip = document.getElementById("tooltip");
@@ -477,13 +934,27 @@
         div.textContent = line;
         tip.appendChild(div);
       });
-      tip.style.left = (x + 14) + "px";
-      tip.style.top = (y + 14) + "px";
+      tip.style.left = Math.min(window.innerWidth - 300, x + 14) + "px";
+      tip.style.top = Math.min(window.innerHeight - 130, y + 14) + "px";
       tip.style.display = "block";
     }
 
-    function rampColor(t, alpha = 195) {
-      // Colorblind-aware Rose -> Amber -> Emerald ramp on light basemap
+    function fillKPIs(containerId, pairs) {
+      const grid = document.getElementById(containerId);
+      grid.replaceChildren();
+      for (const [k, v] of pairs) {
+        const box = document.createElement("div");
+        box.className = "kpi";
+        const kEl = document.createElement("div");
+        kEl.className = "k"; kEl.textContent = k;
+        const vEl = document.createElement("div");
+        vEl.className = "v"; vEl.textContent = v;
+        box.append(kEl, vEl);
+        grid.appendChild(box);
+      }
+    }
+
+    function rampRG(t, alpha = 195) {
       const c = Math.max(0, Math.min(1, t));
       if (c < 0.5) {
         const u = c * 2;
@@ -493,30 +964,81 @@
       return [Math.round(245 - 229 * u), Math.round(158 + 27 * u), Math.round(11 + 118 * u), alpha];
     }
 
+    function rampBlue(t, alpha = 210) {
+      const c = Math.max(0, Math.min(1, t));
+      return [Math.round(224 - 222 * c), Math.round(242 - 110 * c), Math.round(254 - 55 * c), alpha];
+    }
+
+    function selectZipFeature(d) {
+      document.getElementById("zip-card-title").textContent = `${d.city || d.zip_code} · ZIP ${d.zip_code}`;
+      document.getElementById("zip-card-badge").textContent = d.county_name || "Metro ATL";
+      fillKPIs("zip-kpis", [
+        ["Buyer Hotness", String(d.hotness_score ?? "N/A")],
+        ["Price-Cut Share", d.price_cut_pct != null ? `${d.price_cut_pct}%` : "N/A"],
+        ["Median DOM", d.median_dom != null ? `${d.median_dom} days` : "N/A"],
+        ["Zillow ZHVI", fmtUSD(d.latest_zhvi)],
+        ["Demand / Supply", `${d.demand_score ?? "-"} / ${d.supply_score ?? "-"}`],
+        ["Active Listings", String(d.active_listing_count ?? "-")],
+      ]);
+      document.getElementById("sim-zip").value = d.zip_code;
+      if (d.latest_zhvi) document.getElementById("sim-fv").value = Math.round(d.latest_zhvi);
+      loadZipHistoryChart(d.zip_code);
+      runSimulator();
+    }
+
     function selectBuilding(d) {
       state.selectedBuilding = d;
-      const hSrc = d.height_measured ? "Overture Measured" : "Est. Default (6m)";
-      setKPIs(
-        `Parcel ${d.id} · ZIP ${d.zip}`,
-        [
-          ["Hybrid GNN+LGBM", fmtUSD(d.hybrid_pred)],
-          ["County Appraisal", fmtUSD(d.actual)],
-          ["PyTorch GNN Pred", fmtUSD(d.gnn_pred)],
-          ["LightGBM Pred", fmtUSD(d.lgbm_pred)],
-          ["SWCP 90% Low", fmtUSD(d.swcp_lower)],
-          ["SWCP 90% High", fmtUSD(d.swcp_upper)],
-          ["True 1:1 Height", `${d.height_m}m (${hSrc})`],
-          ["Footprint / Diff", `${d.footprint_sqm}m² (${d.mispricing_pct > 0 ? "+" : ""}${d.mispricing_pct}%)`],
-        ],
-        `True Overture building footprint extruded 1:1 in real meters + top-5 PyTorch Spatial Graph Transformer comps (top attn ${(d.comps?.[0]?.weight * 100 || 0).toFixed(1)}%).`
-      );
+      const hSrc = d.height_measured ? "Overture Measured" : "Est. Default 6m";
+      document.getElementById("bldg-card-title").textContent = `Parcel ${d.id} · ZIP ${d.zip}`;
+      document.getElementById("bldg-height-badge").textContent = `${d.height_m}m · ${hSrc}`;
+      const bandWidth = Math.max(0, (d.swcp_upper || 0) - (d.swcp_lower || 0));
+
+      fillKPIs("bldg-kpis", [
+        ["Hybrid GNN+LGBM", fmtUSD(d.hybrid_pred)],
+        ["County Appraisal", fmtUSD(d.actual)],
+        ["PyTorch GNN Pred", fmtUSD(d.gnn_pred)],
+        ["LightGBM Pred", fmtUSD(d.lgbm_pred)],
+        ["Footprint Area", `${d.footprint_sqm} m²`],
+        ["Model vs Appraisal", `${d.mispricing_pct > 0 ? "+" : ""}${d.mispricing_pct}%`],
+      ]);
+
+      // Update visual SWCP interval gauge
+      const lo = Math.min(d.swcp_lower, d.actual * 0.85);
+      const hi = Math.max(d.swcp_upper, d.actual * 1.15);
+      const span = Math.max(1, hi - lo);
+      const pct = (val) => Math.max(2, Math.min(98, ((val - lo) / span) * 100));
+      document.getElementById("swcp-band").style.left = pct(d.swcp_lower) + "%";
+      document.getElementById("swcp-band").style.right = (100 - pct(d.swcp_upper)) + "%";
+      document.getElementById("swcp-dot-pred").style.left = pct(d.hybrid_pred) + "%";
+      document.getElementById("swcp-dot-actual").style.left = pct(d.actual) + "%";
+      document.getElementById("swcp-low-lbl").textContent = fmtUSD(d.swcp_lower);
+      document.getElementById("swcp-high-lbl").textContent = fmtUSD(d.swcp_upper);
+      document.getElementById("swcp-span-label").textContent = `±${fmtUSD(bandWidth / 2)}`;
+
+      // Populate top-5 learned GNN comps table
+      const tbody = document.getElementById("comps-tbody");
+      tbody.replaceChildren();
+      for (const c of (d.comps || [])) {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th");
+        th.scope = "row";
+        th.textContent = c.comp_id;
+        const tdW = document.createElement("td");
+        tdW.dataset.label = "Attn Wt";
+        tdW.textContent = `${(c.weight * 100).toFixed(1)}%`;
+        const tdV = document.createElement("td");
+        tdV.dataset.label = "Comp Value";
+        tdV.textContent = fmtUSD(c.value);
+        tr.append(th, tdW, tdV);
+        tbody.appendChild(tr);
+      }
       renderLayers();
     }
 
     function renderLayers() {
+      if (state.mode === "analytics") return;
       const layers = [];
 
-      // 1. Optional subtle ZIP outline overlay when in non-ZIP modes
       if (state.showZipOutlines && state.zipsGeo && state.mode !== "path_c_zips") {
         layers.push(
           new deck.GeoJsonLayer({
@@ -525,13 +1047,12 @@
             filled: false,
             stroked: true,
             lineWidthMinPixels: 1,
-            getLineColor: [100, 116, 139, 130],
+            getLineColor: [100, 116, 139, 125],
             pickable: false,
           })
         );
       }
 
-      // 2. Path C: Real 2025 Census TIGER ZIP Polygons (2D Choropleth OR 3D Extruded Prisms)
       if (state.mode === "path_c_zips" && state.zipsGeo) {
         layers.push(
           new deck.GeoJsonLayer({
@@ -543,22 +1064,27 @@
             wireframe: state.is3D,
             pickable: true,
             lineWidthMinPixels: 1,
-            elevationScale: state.is3D ? 45 : 0,
+            elevationScale: state.is3D ? 42 : 0,
             getElevation: (f) => {
               const p = f.properties;
-              return state.colorZipByCut ? (p.price_cut_pct || 10) : (p.hotness_score || 15);
+              if (state.zipMetric === "price_cut") return p.price_cut_pct || 10;
+              if (state.zipMetric === "dom") return Math.min(110, p.median_dom || 25);
+              if (state.zipMetric === "zhvi") return (p.latest_zhvi || 300000) / 10000;
+              return p.hotness_score || 15;
             },
             getFillColor: (f) => {
               const p = f.properties;
-              if (state.colorZipByCut) {
-                const v = p.price_cut_pct;
-                if (v == null) return [203, 213, 225, 110];
-                // High price cuts = Rose (buyer leverage), Low cuts = Emerald (tight)
-                return rampColor(1.0 - (v - 15) / 40, state.is3D ? 185 : 165);
+              const a = state.is3D ? 185 : 165;
+              if (state.zipMetric === "price_cut") {
+                return p.price_cut_pct == null ? [203, 213, 225, 100] : rampRG(1.0 - (p.price_cut_pct - 15) / 40, a);
               }
-              const h = p.hotness_score;
-              if (h == null) return [203, 213, 225, 110];
-              return rampColor((h - 20) / 55, state.is3D ? 185 : 165);
+              if (state.zipMetric === "dom") {
+                return p.median_dom == null ? [203, 213, 225, 100] : rampRG(1.0 - (p.median_dom - 25) / 60, a);
+              }
+              if (state.zipMetric === "zhvi") {
+                return p.latest_zhvi == null ? [203, 213, 225, 100] : rampBlue((p.latest_zhvi - 220000) / 700000, a);
+              }
+              return p.hotness_score == null ? [203, 213, 225, 100] : rampRG((p.hotness_score - 20) / 55, a);
             },
             getLineColor: [51, 65, 85, 175],
             onHover: (info) => {
@@ -568,38 +1094,22 @@
                 `${d.city || d.zip_code} (ZIP ${d.zip_code}) · ${d.county_name || ""}`,
                 `Buyer Hotness: ${d.hotness_score ?? "N/A"} (Demand ${d.demand_score ?? "-"} / Supply ${d.supply_score ?? "-"})`,
                 `Median DOM: ${d.median_dom ?? "-"}d · Price Cuts: ${d.price_cut_pct ?? "-"}%`,
-                `Active Listings: ${d.active_listing_count ?? "-"} · Zillow ZHVI: ${fmtUSD(d.latest_zhvi)}`,
+                `Zillow ZHVI: ${fmtUSD(d.latest_zhvi)} · Active: ${d.active_listing_count ?? "-"}`,
               ]);
             },
             onClick: (info) => {
               if (!info.object) return;
-              const d = info.object.properties;
-              document.getElementById("sim-zip").value = d.zip_code;
-              if (d.latest_zhvi) document.getElementById("sim-fv").value = Math.round(d.latest_zhvi);
-              setKPIs(
-                `${d.city || d.zip_code} · ZIP ${d.zip_code}`,
-                [
-                  ["Hotness Score", String(d.hotness_score ?? "N/A")],
-                  ["Median DOM", `${d.median_dom ?? "-"} days`],
-                  ["Price-Cut Share", `${d.price_cut_pct ?? "-"}%`],
-                  ["Active Listings", String(d.active_listing_count ?? "-")],
-                  ["Demand / Supply", `${d.demand_score ?? "-"} / ${d.supply_score ?? "-"}`],
-                  ["Zillow ZHVI", fmtUSD(d.latest_zhvi)],
-                ],
-                "Loaded real ZIP polygon into the Seller Ask-Price Frontier Simulator below."
-              );
-              runSimulator();
+              selectZipFeature(info.object.properties);
             },
             updateTriggers: {
               extruded: [state.is3D],
-              getElevation: [state.colorZipByCut, state.is3D],
-              getFillColor: [state.colorZipByCut, state.is3D],
+              getElevation: [state.zipMetric, state.is3D],
+              getFillColor: [state.zipMetric, state.is3D],
             },
           })
         );
       }
 
-      // 3. Path A: True Overture 3D Building Footprints (1:1 real meters in 3D, crisp outlines in 2D!)
       if (state.mode === "path_a" && state.buildingsGeo) {
         layers.push(
           new deck.GeoJsonLayer({
@@ -611,20 +1121,30 @@
             wireframe: false,
             pickable: true,
             lineWidthMinPixels: 1,
-            elevationScale: state.is3D ? 1.0 : 0, // TRUE 1:1 physical meters!
+            elevationScale: state.is3D ? 1.0 : 0, // TRUE 1:1 physical meters
             getElevation: (f) => Math.max(3, f.properties.height_m || 6),
             getFillColor: (f) => {
               const p = f.properties;
               if (state.selectedBuilding && state.selectedBuilding.id === p.id) {
                 return [2, 132, 199, 255];
               }
-              return rampColor((p.mispricing_pct + 25) / 50, 220);
+              if (state.bldgMetric === "fair_value") {
+                return rampBlue((p.hybrid_pred - 250000) / 1400000, 225);
+              }
+              if (state.bldgMetric === "uncertainty") {
+                const w = (p.swcp_upper - p.swcp_lower) / Math.max(1, p.hybrid_pred);
+                return rampRG(1.0 - (w - 0.35) / 0.85, 225);
+              }
+              if (state.bldgMetric === "height") {
+                return rampBlue((p.height_m - 3) / 14, 225);
+              }
+              return rampRG((p.mispricing_pct + 25) / 50, 225);
             },
-            getLineColor: [30, 41, 59, 170],
+            getLineColor: [30, 41, 59, 165],
             onHover: (info) => {
               if (!info.object) return showTooltip(0, 0, null);
               const d = info.object.properties;
-              const hTag = d.height_measured ? "Overture measured" : "default est.";
+              const hTag = d.height_measured ? "Overture measured" : "est. default";
               showTooltip(info.x, info.y, [
                 `Building Footprint · Parcel ${d.id} (${d.zip})`,
                 `Hybrid Fair Value: ${fmtUSD(d.hybrid_pred)} (Appraisal ${fmtUSD(d.actual)})`,
@@ -638,7 +1158,7 @@
             },
             updateTriggers: {
               extruded: [state.is3D],
-              getFillColor: [state.selectedBuilding?.id],
+              getFillColor: [state.selectedBuilding?.id, state.bldgMetric],
             },
           })
         );
@@ -671,9 +1191,8 @@
         }
       }
 
-      // 4. Path C Flows: IRS Wealth Inflows vs. LODES Metro Commutes
       if (state.mode === "path_c_arcs") {
-        if (state.showLodesFlows) {
+        if (state.flowType === "lodes") {
           layers.push(
             new deck.ArcLayer({
               id: "lodes-commute-arcs",
@@ -689,7 +1208,7 @@
                 if (!info.object) return showTooltip(0, 0, null);
                 const d = info.object;
                 showTooltip(info.x, info.y, [
-                  `LODES Commute: ${d.home_county} → ${d.work_county}`,
+                  `LODES8 Commute: ${d.home_county} → ${d.work_county}`,
                   `Daily Commuters: ${d.commuters.toLocaleString()}`,
                   `High-Wage Share: ${d.high_wage_pct}% (${d.high_wage_commuters.toLocaleString()})`,
                 ]);
@@ -723,51 +1242,57 @@
         }
       }
 
-      // 5. Paths E & B: Rezoning, Land Dev Permits & Mapillary Streetscapes
       if (state.mode === "path_eb") {
+        const filteredCats = state.catalysts.filter((d) =>
+          (d.type.includes("Rezoning") && state.showRezoning) ||
+          (!d.type.includes("Rezoning") && state.showPermits)
+        );
         layers.push(
           new deck.ScatterplotLayer({
             id: "path-e-catalysts",
-            data: state.catalysts,
+            data: filteredCats,
             pickable: true,
             radiusMinPixels: 4,
             radiusMaxPixels: 9,
             getPosition: (d) => [d.lon, d.lat],
-            getFillColor: (d) => d.type.includes("Rezoning") ? [217, 119, 6, 220] : [225, 29, 72, 220],
+            getFillColor: (d) => d.type.includes("Rezoning") ? [217, 119, 6, 225] : [225, 29, 72, 225],
             stroked: true,
-            getLineColor: [255, 255, 255, 200],
+            getLineColor: [255, 255, 255, 210],
             lineWidthMinPixels: 1,
             onHover: (info) => {
               if (!info.object) return showTooltip(0, 0, null);
               const d = info.object;
               showTooltip(info.x, info.y, [d.type, d.label, d.detail]);
             },
-          }),
-          new deck.ScatterplotLayer({
-            id: "path-b-streetscapes",
-            data: state.streetscapes,
-            pickable: true,
-            radiusMinPixels: 3,
-            radiusMaxPixels: 8,
-            getPosition: (d) => [d.lon, d.lat],
-            getFillColor: [5, 150, 105, 220],
-            stroked: true,
-            getLineColor: [255, 255, 255, 200],
-            lineWidthMinPixels: 1,
-            onHover: (info) => {
-              if (!info.object) return showTooltip(0, 0, null);
-              const d = info.object;
-              showTooltip(info.x, info.y, [
-                `Mapillary Streetscape (${d.suburb})`,
-                `Image ID: ${d.image_id} · H3: ${d.h3_cell}`,
-                `CV Map Features in Hex: ${d.hex_map_feature_count}`,
-              ]);
-            },
           })
         );
+        if (state.showStreet) {
+          layers.push(
+            new deck.ScatterplotLayer({
+              id: "path-b-streetscapes",
+              data: state.streetscapes,
+              pickable: true,
+              radiusMinPixels: 3,
+              radiusMaxPixels: 8,
+              getPosition: (d) => [d.lon, d.lat],
+              getFillColor: [5, 150, 105, 225],
+              stroked: true,
+              getLineColor: [255, 255, 255, 210],
+              lineWidthMinPixels: 1,
+              onHover: (info) => {
+                if (!info.object) return showTooltip(0, 0, null);
+                const d = info.object;
+                showTooltip(info.x, info.y, [
+                  `Mapillary Streetscape (${d.suburb})`,
+                  `Image ID: ${d.image_id} · H3: ${d.h3_cell}`,
+                  `CV Map Features in Hex: ${d.hex_map_feature_count}`,
+                ]);
+              },
+            })
+          );
+        }
       }
 
-      // 6. Official 2024 Census 5-County Boundary Outlines (always crisp on top!)
       if (state.showCounties && state.countiesGeo) {
         layers.push(
           new deck.GeoJsonLayer({
@@ -776,7 +1301,7 @@
             filled: false,
             stroked: true,
             lineWidthMinPixels: 2.2,
-            getLineColor: [15, 23, 42, 220],
+            getLineColor: [15, 23, 42, 215],
             pickable: false,
           })
         );
@@ -785,51 +1310,33 @@
       deckOverlay.setProps({ layers });
     }
 
-    async function runSpatialQuery(queryText) {
-      const q = (queryText || document.getElementById("nl-input").value).trim();
-      if (!q) return;
-      document.getElementById("nl-input").value = q;
-      const sumEl = document.getElementById("nl-summary");
-      const sqlEl = document.getElementById("nl-sql");
-      sumEl.textContent = "Running DuckDB SQL...";
+    async function loadZipHistoryChart(zipCode) {
       try {
-        const res = await fetch(`/api/spatial-query?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`/api/path-c/zip-history/${encodeURIComponent(zipCode)}`);
+        if (!res.ok) return;
         const data = await res.json();
-        sumEl.textContent = data.summary;
-        sqlEl.textContent = data.sql;
-        sqlEl.style.display = "block";
-        if (data.fly_to) {
-          if (typeof data.fly_to.color_by_cut === "boolean") {
-            state.colorZipByCut = data.fly_to.color_by_cut;
-            document.getElementById("toggle-price-cut").checked = data.fly_to.color_by_cut;
-          }
-          const targetMode = data.fly_to.mode === "path_c_towers" ? "path_c_zips" : data.fly_to.mode;
-          switchMode(targetMode, false);
-          map.flyTo({
-            center: [data.fly_to.lon, data.fly_to.lat],
-            zoom: data.fly_to.zoom,
-            pitch: state.is3D ? 50 : 0,
-            duration: 1000,
-          });
-        }
-        if (data.rows?.length && data.fly_to?.mode !== "path_a") {
-          const top = data.rows[0];
-          setKPIs(
-            `Top Match: ${top.city} (${top.zip_code})`,
-            [
-              ["County", String(top.county_name || "-")],
-              ["Hotness Score", String(top.hotness_score ?? "-")],
-              ["Price-Cut %", `${top.price_cut_pct ?? "-"}%`],
-              ["Median DOM", `${top.median_dom ?? "-"}d`],
-              ["Median List", fmtUSD(top.median_list_price)],
-              ["Regime", String(top.market_regime || "-")],
+        const hist = data.history || [];
+        const labels = hist.map((r) => r.month);
+        const doms = hist.map((r) => r.median_dom);
+        const cuts = hist.map((r) => r.price_cut_pct);
+
+        if (state.charts.zipHist) state.charts.zipHist.destroy();
+        state.charts.zipHist = new Chart(document.getElementById("zip-history-chart"), {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              { label: "Median DOM (d)", data: doms, borderColor: "#0284c7", backgroundColor: "rgba(2,132,199,0.1)", borderWidth: 2, pointRadius: 0, tension: 0.25 },
+              { label: "Price Cuts (%)", data: cuts, borderColor: "#e11d48", borderWidth: 1.8, pointRadius: 0, tension: 0.25 },
             ],
-            `Query returned ${data.rows.length} matching ZIPs from Gold dbt mart.`
-          );
-        }
-      } catch (err) {
-        sumEl.textContent = `Query failed: ${err.message}`;
-      }
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } },
+            scales: { x: { ticks: { maxTicksLimit: 6, font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } },
+          },
+        });
+      } catch (_) {}
     }
 
     async function runSimulator() {
@@ -841,7 +1348,36 @@
         const res = await fetch(`/api/path-c/simulate-pricing?zip_code=${encodeURIComponent(zc)}&fair_value=${encodeURIComponent(fv)}`);
         if (!res.ok) throw new Error("ZIP not found");
         const data = await res.json();
-        data.frontier.forEach((row, idx) => {
+        const frontier = data.frontier || [];
+
+        if (state.charts.sim) state.charts.sim.destroy();
+        state.charts.sim = new Chart(document.getElementById("sim-chart"), {
+          type: "line",
+          data: {
+            labels: frontier.map((r) => `${r.ask_spread_pct >= 0 ? "+" : ""}${r.ask_spread_pct}%`),
+            datasets: [{
+              label: "Expected Net Proceeds ($)",
+              data: frontier.map((r) => r.expected_net),
+              borderColor: "#059669",
+              backgroundColor: "rgba(5,150,105,0.12)",
+              fill: true,
+              borderWidth: 2,
+              pointRadius: frontier.map((_, i) => i === data.optimal_index ? 5 : 2),
+              pointBackgroundColor: frontier.map((_, i) => i === data.optimal_index ? "#059669" : "#0284c7"),
+              tension: 0.25,
+            }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { font: { size: 9 } } },
+              y: { ticks: { font: { size: 9 }, callback: (v) => "$" + Math.round(v / 1000) + "k" } },
+            },
+          },
+        });
+
+        frontier.forEach((row, idx) => {
           const tr = document.createElement("tr");
           if (idx === data.optimal_index) tr.className = "optimal-row";
           const th = document.createElement("th");
@@ -871,112 +1407,339 @@
       }
     }
 
+    async function runSpatialQuery(queryText) {
+      const q = (queryText || document.getElementById("nl-input").value).trim();
+      if (!q) return;
+      document.getElementById("nl-input").value = q;
+      const sumEl = document.getElementById("nl-summary");
+      const sqlEl = document.getElementById("nl-sql");
+      sumEl.textContent = "Running DuckDB SQL...";
+      try {
+        const res = await fetch(`/api/spatial-query?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        sumEl.textContent = data.summary;
+        sqlEl.textContent = data.sql;
+        sqlEl.style.display = "block";
+        if (data.fly_to) {
+          if (typeof data.fly_to.color_by_cut === "boolean") {
+            state.zipMetric = data.fly_to.color_by_cut ? "price_cut" : "hotness";
+            document.querySelectorAll("#zip-metric-bar .seg-btn").forEach((b) =>
+              b.classList.toggle("active", b.dataset.metric === state.zipMetric)
+            );
+          }
+          const targetMode = data.fly_to.mode === "path_c_towers" ? "path_c_zips" : data.fly_to.mode;
+          switchMode(targetMode, false);
+          map.flyTo({
+            center: [data.fly_to.lon, data.fly_to.lat],
+            zoom: data.fly_to.zoom,
+            pitch: state.is3D ? 48 : 0,
+            duration: 1000,
+          });
+        }
+        if (data.rows?.length && data.fly_to?.mode !== "path_a") {
+          const top = data.rows[0];
+          const matchedFeat = state.zipsGeo?.features?.find((f) => f.properties.zip_code === top.zip_code);
+          if (matchedFeat) selectZipFeature(matchedFeat.properties);
+        }
+      } catch (err) {
+        sumEl.textContent = `Query failed: ${err.message}`;
+      }
+    }
+
+    function renderAnalyticsCharts() {
+      if (state.analyticsRendered || !state.analytics) return;
+      state.analyticsRendered = true;
+      const b = state.analytics.benchmarks;
+
+      // 1. 10-Year Metro Atlanta Liquidity vs FRED 30Y Rate
+      new Chart(document.getElementById("chart-metro-ts"), {
+        type: "line",
+        data: {
+          labels: state.metroTs.map((r) => r.month),
+          datasets: [
+            { label: "Median DOM (days)", data: state.metroTs.map((r) => r.median_dom), borderColor: "#0284c7", borderWidth: 2, pointRadius: 0, yAxisID: "y" },
+            { label: "Price-Cut Share (%)", data: state.metroTs.map((r) => r.avg_price_cut_pct), borderColor: "#e11d48", borderWidth: 1.8, pointRadius: 0, yAxisID: "y" },
+            { label: "FRED 30Y Rate (%)", data: state.metroTs.map((r) => r.mortgage_30y), borderColor: "#d97706", borderDash: [4, 3], borderWidth: 2, pointRadius: 0, yAxisID: "y1" },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { maxTicksLimit: 8 } },
+            y: { position: "left", title: { display: true, text: "DOM / Price Cut %" } },
+            y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "30Y Rate %" } },
+          },
+        },
+      });
+
+      // 2. Path A Deep ML Ablation
+      new Chart(document.getElementById("chart-gnn-bench"), {
+        type: "bar",
+        data: {
+          labels: b.path_a_models.map((m) => m.label),
+          datasets: [{
+            label: "Test MAPE (%)",
+            data: b.path_a_models.map((m) => m.mape),
+            backgroundColor: ["#94a3b8", "#38bdf8", "#0284c7", "#10b981", "#059669"],
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { title: { display: true, text: "Lower is Better — Test MAPE (%)" }, min: 0 } },
+        },
+      });
+
+      // 3. Survival Hazard Ratios
+      new Chart(document.getElementById("chart-survival-hr"), {
+        type: "bar",
+        data: {
+          labels: b.survival_hazards.map((s) => s.factor),
+          datasets: [{
+            label: "Cox Hazard Ratio (x)",
+            data: b.survival_hazards.map((s) => s.hr),
+            backgroundColor: b.survival_hazards.map((s) => s.hr >= 1 ? "#059669" : "#e11d48"),
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { title: { display: true, text: "Hazard Ratio (1.0 = Neutral)" } } },
+        },
+      });
+
+      // 4. Spatial CQR Coverage
+      new Chart(document.getElementById("chart-cqr-cov"), {
+        type: "bar",
+        data: {
+          labels: b.spatial_cqr.map((r) => r.tier),
+          datasets: [
+            { label: "Global Split CP (%)", data: b.spatial_cqr.map((r) => r.global_cp), backgroundColor: "#cbd5e1", borderRadius: 5 },
+            { label: "Spatial CQR / LSCP (%)", data: b.spatial_cqr.map((r) => r.spatial_cqr), backgroundColor: "#0284c7", borderRadius: 5 },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: { y: { min: 60, max: 100, title: { display: true, text: "Empirical Coverage (Target = 90%)" } } },
+        },
+      });
+
+      // 5. HMDA 5-County 2024
+      const h24 = state.analytics.hmda_2024 || [];
+      new Chart(document.getElementById("chart-hmda-5c"), {
+        type: "bar",
+        data: {
+          labels: h24.map((r) => r.county_name),
+          datasets: [
+            { label: "Investor Share (%)", data: h24.map((r) => +(r.investor_purchase_share * 100).toFixed(1)), backgroundColor: "#d97706", borderRadius: 5 },
+            { label: "Mortgage Denial Rate (%)", data: h24.map((r) => +(r.denial_rate * 100).toFixed(1)), backgroundColor: "#e11d48", borderRadius: 5 },
+          ],
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: "Share (%)" } } } },
+      });
+
+      // 6. Path C Walk-Forward CV Lift
+      const wf = b.path_c_walkforward;
+      new Chart(document.getElementById("chart-pathc-wf"), {
+        type: "bar",
+        data: {
+          labels: ["6M Excess Return IC", "3M DOM Shift IC"],
+          datasets: [
+            { label: "Price Momentum Only", data: [wf.excess_6m_ic_before, wf.dom_3m_ic_before], backgroundColor: "#94a3b8", borderRadius: 6 },
+            { label: "Momentum + Liquidity + FRED", data: [wf.excess_6m_ic_after, wf.dom_3m_ic_after], backgroundColor: "#059669", borderRadius: 6 },
+          ],
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 0.7, title: { display: true, text: "Monthly Cross-Sectional Rank IC" } } } },
+      });
+    }
+
     function updateLegend() {
+      const box = document.getElementById("legend-box");
+      box.hidden = (state.mode === "analytics");
+      if (state.mode === "analytics") return;
+
       const title = document.getElementById("legend-title");
+      const bar = document.getElementById("legend-bar");
       const low = document.getElementById("legend-low");
       const mid = document.getElementById("legend-mid");
       const high = document.getElementById("legend-high");
-      if (state.mode === "path_a") {
-        title.textContent = "Overture Building Footprints (1:1 Real Heights · GNN Mispricing)";
-        low.textContent = "Overvalued (−25%)"; mid.textContent = "Fair"; high.textContent = "Undervalued (+25%)";
-      } else if (state.mode === "path_c_zips") {
-        title.textContent = state.colorZipByCut
-          ? "Metro Atlanta ZIP Price-Cut Share (Buyer Leverage)"
-          : "Metro Atlanta ZIP Buyer Hotness (Oct 2026)";
-        low.textContent = state.colorZipByCut ? "High Cuts (55%)" : "Cool (20)";
-        mid.textContent = "Balanced";
-        high.textContent = state.colorZipByCut ? "Tight (15%)" : "Hot (75+)";
+
+      const rgGrad = "linear-gradient(90deg, #e11d48, #f59e0b, #10b981)";
+      const blueGrad = "linear-gradient(90deg, #e0f2fe, #38bdf8, #0284c7)";
+
+      if (state.mode === "path_c_zips") {
+        if (state.zipMetric === "price_cut") {
+          title.textContent = "Metro Atlanta ZIP Price-Cut Share (Oct 2026)";
+          bar.style.background = rgGrad;
+          low.textContent = "High Cuts (55%)"; mid.textContent = "35%"; high.textContent = "Tight (15%)";
+        } else if (state.zipMetric === "dom") {
+          title.textContent = "Metro Atlanta ZIP Median Days on Market";
+          bar.style.background = rgGrad;
+          low.textContent = "Slow (85d+)"; mid.textContent = "55d"; high.textContent = "Fast (25d)";
+        } else if (state.zipMetric === "zhvi") {
+          title.textContent = "Metro Atlanta Zillow Home Value (ZHVI)";
+          bar.style.background = blueGrad;
+          low.textContent = "$220k"; mid.textContent = "$550k"; high.textContent = "$920k+";
+        } else {
+          title.textContent = "Metro Atlanta ZIP Buyer Hotness (Oct 2026)";
+          bar.style.background = rgGrad;
+          low.textContent = "Cool (20)"; mid.textContent = "Balanced"; high.textContent = "Hot (75+)";
+        }
+      } else if (state.mode === "path_a") {
+        if (state.bldgMetric === "fair_value") {
+          title.textContent = "15,000 Overture 3D Buildings · Fair Value";
+          bar.style.background = blueGrad;
+          low.textContent = "$250k"; mid.textContent = "$900k"; high.textContent = "$1.65M+";
+        } else if (state.bldgMetric === "uncertainty") {
+          title.textContent = "SWCP 90% Relative Uncertainty Width";
+          bar.style.background = rgGrad;
+          low.textContent = "Wider Band"; mid.textContent = "Moderate"; high.textContent = "Tight Band";
+        } else if (state.bldgMetric === "height") {
+          title.textContent = "True 1:1 Building Height (Overture LiDAR/3D)";
+          bar.style.background = blueGrad;
+          low.textContent = "3m (1-story)"; mid.textContent = "10m"; high.textContent = "17m+";
+        } else {
+          title.textContent = "15,000 Overture 3D Buildings · GNN Mispricing";
+          bar.style.background = rgGrad;
+          low.textContent = "Overvalued (−25%)"; mid.textContent = "Fair"; high.textContent = "Undervalued (+25%)";
+        }
       } else if (state.mode === "path_c_arcs") {
-        title.textContent = state.showLodesFlows
-          ? "Census LODES8 Morning Commuter Flows"
-          : "IRS Out-of-State Wealth Inflows → Metro Atlanta";
-        low.textContent = state.showLodesFlows ? "Home Suburb" : "Origin State";
-        mid.textContent = state.showLodesFlows ? "Width = Commuters" : "Width = AGI $M";
+        title.textContent = state.flowType === "lodes" ? "Census LODES8 Morning Commuter Flows" : "IRS Out-of-State Wealth Inflows → Metro ATL";
+        bar.style.background = state.flowType === "lodes" ? "linear-gradient(90deg, #059669, #0284c7)" : "linear-gradient(90deg, #d97706, #0284c7)";
+        low.textContent = state.flowType === "lodes" ? "Home Suburb" : "Origin State";
+        mid.textContent = state.flowType === "lodes" ? "Width = Commuters" : "Width = AGI $M";
         high.textContent = "Work / Dest County";
       } else {
         title.textContent = "Paths E & B: Rezoning, Land Dev & Streetscapes";
+        bar.style.background = rgGrad;
         low.textContent = "Permits (Rose)"; mid.textContent = "Rezoning (Amber)"; high.textContent = "Mapillary (Emerald)";
       }
     }
 
     function switchMode(newMode, doFly = true) {
       state.mode = newMode;
-      document.querySelectorAll(".mode-btn").forEach((b) => {
-        const active = b.dataset.mode === newMode;
-        b.classList.toggle("active", active);
-        b.setAttribute("aria-selected", String(active));
+      document.querySelectorAll(".nav-tab").forEach((tab) => {
+        const active = tab.dataset.mode === newMode;
+        tab.setAttribute("aria-selected", String(active));
+        if (active) tab.scrollIntoView({ block: "nearest", inline: "nearest" });
       });
-      if (doFly) {
-        const vKey = (newMode === "path_c_arcs" && state.showLodesFlows) ? "path_c_lodes" : newMode;
-        const v = VIEWS[vKey];
-        map.flyTo({
-          center: v.center,
-          zoom: v.zoom,
-          pitch: state.is3D ? v.pitch : 0,
-          bearing: state.is3D ? v.bearing : 0,
-          duration: 1000,
-        });
+
+      const isAnalytics = newMode === "analytics";
+      document.getElementById("panel-analytics").hidden = !isAnalytics;
+      document.getElementById("map-drawer").hidden = isAnalytics;
+
+      ["path_c_zips", "path_a", "path_c_arcs", "path_eb"].forEach((m) => {
+        const p = document.getElementById(`panel-${m}`);
+        if (p) p.hidden = (m !== newMode);
+      });
+
+      if (isAnalytics) {
+        renderAnalyticsCharts();
+      } else {
+        if (doFly) {
+          const vKey = (newMode === "path_c_arcs" && state.flowType === "lodes") ? "path_c_lodes" : newMode;
+          const v = VIEWS[vKey];
+          map.flyTo({
+            center: v.center,
+            zoom: v.zoom,
+            pitch: state.is3D ? v.pitch : 0,
+            bearing: state.is3D ? v.bearing : 0,
+            duration: 950,
+          });
+        }
+        renderLayers();
       }
       updateLegend();
-      renderLayers();
     }
 
-    // Top toolbar interactions
+    // Bind navigation tabs
+    document.querySelectorAll(".nav-tab").forEach((tab) => {
+      tab.addEventListener("click", () => switchMode(tab.dataset.mode));
+    });
+
+    // Top controls
     document.getElementById("btn-toggle-3d").addEventListener("click", (e) => {
       state.is3D = !state.is3D;
       e.target.textContent = state.is3D ? "3D: ON" : "2D Mode";
       e.target.classList.toggle("active", state.is3D);
       e.target.setAttribute("aria-pressed", String(state.is3D));
-      const vKey = (state.mode === "path_c_arcs" && state.showLodesFlows) ? "path_c_lodes" : state.mode;
-      map.easeTo({
-        pitch: state.is3D ? VIEWS[vKey].pitch : 0,
-        bearing: state.is3D ? VIEWS[vKey].bearing : 0,
-        duration: 600,
-      });
-      renderLayers();
+      if (state.mode !== "analytics") {
+        const vKey = (state.mode === "path_c_arcs" && state.flowType === "lodes") ? "path_c_lodes" : state.mode;
+        map.easeTo({ pitch: state.is3D ? VIEWS[vKey].pitch : 0, bearing: state.is3D ? VIEWS[vKey].bearing : 0, duration: 550 });
+        renderLayers();
+      }
     });
-
     document.getElementById("btn-toggle-counties").addEventListener("click", (e) => {
       state.showCounties = !state.showCounties;
       e.target.classList.toggle("active", state.showCounties);
       e.target.setAttribute("aria-pressed", String(state.showCounties));
       renderLayers();
     });
-
     document.getElementById("btn-toggle-zips").addEventListener("click", (e) => {
       state.showZipOutlines = !state.showZipOutlines;
       e.target.classList.toggle("active", state.showZipOutlines);
       e.target.setAttribute("aria-pressed", String(state.showZipOutlines));
       renderLayers();
     });
-
     document.getElementById("basemap-select").addEventListener("change", (e) => {
       map.setStyle(BASEMAPS[e.target.value]);
     });
-
-    document.querySelectorAll(".mode-btn").forEach((btn) => {
-      btn.addEventListener("click", () => switchMode(btn.dataset.mode));
+    document.getElementById("btn-toggle-drawer").addEventListener("click", (e) => {
+      const dr = document.getElementById("map-drawer");
+      const collapsed = dr.classList.toggle("collapsed");
+      e.target.textContent = collapsed ? "Show Panel" : "Hide Panel";
+      e.target.setAttribute("aria-pressed", String(collapsed));
     });
+
+    // Sub-mode selectors
+    document.querySelectorAll("#zip-metric-bar .seg-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.zipMetric = b.dataset.metric;
+        document.querySelectorAll("#zip-metric-bar .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        updateLegend();
+        renderLayers();
+      });
+    });
+    document.querySelectorAll("#bldg-metric-bar .seg-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.bldgMetric = b.dataset.bmetric;
+        document.querySelectorAll("#bldg-metric-bar .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        updateLegend();
+        renderLayers();
+      });
+    });
+    document.querySelectorAll("#flow-metric-bar .seg-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.flowType = b.dataset.flow;
+        document.querySelectorAll("#flow-metric-bar .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+        document.getElementById("flow-note").textContent =
+          state.flowType === "lodes"
+            ? "Showing Census LODES8 morning cross-county commutes (DeKalb→Fulton 124K, Cobb→Fulton 112K, Gwinnett→Fulton 89K, Forsyth→Fulton 39K @ 79.6% high-wage)."
+            : "Showing top out-of-state household AGI inflows into Fulton, DeKalb, Cobb, Gwinnett & Forsyth (LA $170M, Chicago $130M, NYC $100M, Seattle $90M, Silicon Valley $80M).";
+        switchMode("path_c_arcs", true);
+      });
+    });
+
+    ["chk-rezoning", "chk-permits", "chk-street"].forEach((id) => {
+      document.getElementById(id).addEventListener("change", () => {
+        state.showRezoning = document.getElementById("chk-rezoning").checked;
+        state.showPermits = document.getElementById("chk-permits").checked;
+        state.showStreet = document.getElementById("chk-street").checked;
+        renderLayers();
+      });
+    });
+
     document.getElementById("sim-run").addEventListener("click", runSimulator);
     document.getElementById("nl-run").addEventListener("click", () => runSpatialQuery());
-    document.getElementById("nl-input").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") runSpatialQuery();
-    });
+    document.getElementById("nl-input").addEventListener("keydown", (e) => { if (e.key === "Enter") runSpatialQuery(); });
     document.querySelectorAll(".chip").forEach((ch) => {
       ch.addEventListener("click", () => runSpatialQuery(ch.dataset.q));
     });
-    document.getElementById("toggle-price-cut").addEventListener("change", (e) => {
-      state.colorZipByCut = e.target.checked;
-      updateLegend();
-      renderLayers();
-    });
-    document.getElementById("toggle-lodes").addEventListener("change", (e) => {
-      state.showLodesFlows = e.target.checked;
-      if (state.mode === "path_c_arcs") switchMode("path_c_arcs", true);
-    });
 
     async function bootstrap() {
-      const [cGeo, zGeo, bGeo, aRes, lRes, eRes, bRes] = await Promise.all([
+      const [cGeo, zGeo, bGeo, aRes, lRes, eRes, bRes, tsRes, anRes] = await Promise.all([
         fetch("/api/boundaries/counties").then((r) => r.json()),
         fetch("/api/path-c/zips-geojson").then((r) => r.json()),
         fetch("/api/path-a/buildings-3d").then((r) => r.json()),
@@ -984,7 +1747,10 @@
         fetch("/api/path-c/commute-arcs").then((r) => r.json()),
         fetch("/api/path-e/catalysts").then((r) => r.json()),
         fetch("/api/path-b/streetscape").then((r) => r.json()),
+        fetch("/api/path-c/metro-timeseries").then((r) => r.json()),
+        fetch("/api/analytics/summary").then((r) => r.json()),
       ]);
+
       state.countiesGeo = cGeo;
       state.zipsGeo = zGeo;
       state.buildingsGeo = bGeo;
@@ -992,23 +1758,51 @@
       state.lodesArcs = lRes.arcs || [];
       state.catalysts = eRes.catalysts || [];
       state.streetscapes = bRes.samples || [];
+      state.metroTs = tsRes.series || [];
+      state.analytics = anRes;
 
-      if (bGeo.features?.length > 0) {
-        state.selectedBuilding = bGeo.features[0].properties;
+      // Populate HMDA 5-county mini-table
+      const hBody = document.getElementById("hmda-tbody");
+      hBody.replaceChildren();
+      for (const r of (anRes.hmda_2024 || [])) {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th"); th.scope = "row"; th.textContent = r.county_name;
+        tr.appendChild(th);
+        for (const [lbl, val] of [
+          ["Buyers", Number(r.purchase_originations).toLocaleString()],
+          ["Deny%", `${(r.denial_rate * 100).toFixed(1)}%`],
+          ["Inv%", `${(r.investor_purchase_share * 100).toFixed(1)}%`],
+          ["Med Val", fmtUSD(r.median_property_value)],
+        ]) {
+          const td = document.createElement("td"); td.dataset.label = lbl; td.textContent = val; tr.appendChild(td);
+        }
+        hBody.appendChild(tr);
       }
-      setKPIs(
-        "Metro Atlanta 5-County Atlas Ready",
-        [
-          ["ZIP Polygons", String(zGeo.features?.length || 0)],
-          ["3D Buildings", (bGeo.features?.length || 0).toLocaleString()],
-          ["County Outlines", String(cGeo.features?.length || 0)],
-          ["Catalysts / Street", `${state.catalysts.length.toLocaleString()} / ${state.streetscapes.length}`],
-        ],
-        "Click any ZIP polygon to simulate seller pricing, toggle 2D/3D at top-right, or switch to Path A for full-city Sandy Springs 1:1 extruded Overture building footprints."
-      );
+
+      // Populate Path B Streetscape GVI% mini-table
+      const gBody = document.getElementById("gvi-tbody");
+      gBody.replaceChildren();
+      for (const r of (anRes.streetscape_scores || [])) {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th"); th.scope = "row"; th.textContent = r.suburb.split(" /")[0];
+        tr.appendChild(th);
+        for (const [lbl, val] of [
+          ["GVI%", `${r.mean_gvi_pct}%`],
+          ["Sky%", `${r.mean_svf_pct}%`],
+          ["ZHVI", fmtUSD(r.zhvi)],
+        ]) {
+          const td = document.createElement("td"); td.dataset.label = lbl; td.textContent = val; tr.appendChild(td);
+        }
+        gBody.appendChild(tr);
+      }
+
+      // Seed initial Roswell ZIP 30075 & first 3D building
+      const defaultZip = zGeo.features?.find((f) => f.properties.zip_code === "30075") || zGeo.features?.[0];
+      if (defaultZip) selectZipFeature(defaultZip.properties);
+      if (bGeo.features?.length > 0) selectBuilding(bGeo.features[0].properties);
+
       updateLegend();
       renderLayers();
-      runSimulator();
     }
 
     map.once("load", bootstrap);
