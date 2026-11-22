@@ -57,6 +57,7 @@ dagster_home/
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+dbt/.user.yml
 *.pt
 *.pth
 *.ckpt

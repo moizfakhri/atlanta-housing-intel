@@ -21,6 +21,8 @@ dependencies = [
     "lightgbm>=4.5.0",
     "scipy>=1.14.0",
     "statsmodels>=0.14.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
 ]
 
 [project.optional-dependencies]
@@ -36,10 +38,6 @@ ml-deep = [
 de = [
     "dagster>=1.8.0",
     "dbt-duckdb>=1.9.0",
-]
-api = [
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
 ]
 
 [build-system]
