@@ -1,0 +1,88 @@
+# =============================================================================
+# Security & Secrets (NEVER COMMIT)
+# =============================================================================
+.env
+.env.*
+!.env.example
+credentials*.json
+*secret*.json
+*.pem
+*.key
+*.p12
+*.pfx
+service_account*.json
+
+# =============================================================================
+# Data Lakehouse & Geospatial Artifacts (Too large / raw data)
+# =============================================================================
+data/
+*.csv
+*.tsv
+*.tsv.gz
+*.csv.gz
+*.parquet
+*.geoparquet
+*.feather
+*.arrow
+*.duckdb
+*.duckdb.*
+*.sqlite
+*.sqlite3
+*.db
+*.pmtiles
+*.mbtiles
+*.gpkg
+*.geojson
+*.fgb
+*.shp
+*.dbf
+*.shx
+*.prj
+*.cpg
+*.sbn
+*.sbx
+*.tif
+*.tiff
+*.zip
+*.tar.gz
+*.pdf
+
+# =============================================================================
+# ML Artifacts, Experiment Tracking & Orchestration State
+# =============================================================================
+mlruns/
+mlartifacts/
+.dagster/
+dagster_home/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.pkl
+*.pickle
+*.joblib
+*.h5
+
+# =============================================================================
+# Python, Caching & OS Files
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+cache/
+**/cache/
+logs/
+*.log
+.DS_Store
+Thumbs.db
