@@ -199,6 +199,17 @@ def run_path_a_benchmark() -> None:
     iv_global = swcp.predict_intervals(te_3d, te_lat, te_lon, spatial=False)
     iv_spatial = swcp.predict_intervals(te_3d, te_lat, te_lon, spatial=True)
 
+    # Multiplicative / locally scaled SWCP: non-conformity score = |y - y_hat| / y_hat (Hjort et al. 2025)
+    swcp_scaled = SpatiallyWeightedConformalRegressor(bandwidth_km=2.0, alpha=0.10)
+    swcp_scaled.fit(
+        y_cal_true=df[cal_idx]["TotAppr"].to_numpy(),
+        y_cal_pred=cal_3d,
+        cal_lat=df[cal_idx]["lat"].to_numpy(),
+        cal_lon=df[cal_idx]["lon"].to_numpy(),
+        cal_scale=cal_3d,
+    )
+    iv_scaled = swcp_scaled.predict_intervals(te_3d, te_lat, te_lon, scale=te_3d, spatial=True)
+
     tbl = Table(title="Path A Valuation & Spatial Conformal Benchmark (Fulton Residential Parcels)")
     tbl.add_column("Experiment", style="cyan")
     tbl.add_column("Test MAPE", justify="right")
@@ -222,24 +233,31 @@ def run_path_a_benchmark() -> None:
         f"{iv_spatial.empirical_coverage(te_true) * 100:.1f}%",
         f"${iv_spatial.mean_width():,.0f}",
     )
+    tbl.add_row(
+        "Multiplicative SWCP (|err|/y_hat, 2km)",
+        "-",
+        "-",
+        f"{iv_scaled.empirical_coverage(te_true) * 100:.1f}%",
+        f"${iv_scaled.mean_width():,.0f}",
+    )
     console.print(tbl)
 
-    # Check local coverage variance across price tiers (shows why SWCP beats global CP!)
-    tier_tbl = Table(title="Path A Local Coverage Audit: Standard CP vs. Spatial Conformal (SWCP)")
+    # Check local coverage variance across price tiers (shows why Multiplicative SWCP fixes luxury undercoverage!)
+    tier_tbl = Table(title="Path A Local Coverage Audit: Global CP vs. Raw SWCP vs. Multiplicative SWCP")
     tier_tbl.add_column("Home Value Tier", style="cyan")
     tier_tbl.add_column("N", justify="right")
     tier_tbl.add_column("Global CP Cov", justify="right")
-    tier_tbl.add_column("SWCP Cov", justify="right", style="green")
-    tier_tbl.add_column("SWCP Mean Width", justify="right")
+    tier_tbl.add_column("Mult-SWCP Cov", justify="right", style="green")
+    tier_tbl.add_column("Mult-SWCP Width", justify="right")
 
     qs = np.quantile(te_true, [0.0, 0.33, 0.67, 1.0])
     labels = ["Starter / Mid (<33%)", "Upper-Mid (33-67%)", "Luxury (>67%)"]
     for i, lbl in enumerate(labels):
         mask = (te_true >= qs[i]) & (te_true <= qs[i + 1])
         cov_g = float(np.mean((te_true[mask] >= iv_global.lower[mask]) & (te_true[mask] <= iv_global.upper[mask])))
-        cov_s = float(np.mean((te_true[mask] >= iv_spatial.lower[mask]) & (te_true[mask] <= iv_spatial.upper[mask])))
-        w_s = float(np.mean(iv_spatial.upper[mask] - iv_spatial.lower[mask]))
-        tier_tbl.add_row(lbl, str(int(mask.sum())), f"{cov_g * 100:.1f}%", f"{cov_s * 100:.1f}%", f"${w_s:,.0f}")
+        cov_m = float(np.mean((te_true[mask] >= iv_scaled.lower[mask]) & (te_true[mask] <= iv_scaled.upper[mask])))
+        w_m = float(np.mean(iv_scaled.upper[mask] - iv_scaled.lower[mask]))
+        tier_tbl.add_row(lbl, str(int(mask.sum())), f"{cov_g * 100:.1f}%", f"{cov_m * 100:.1f}%", f"${w_m:,.0f}")
     console.print(tier_tbl)
 
 
