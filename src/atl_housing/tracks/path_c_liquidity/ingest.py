@@ -99,7 +99,7 @@ def ingest_hmda_atlanta(years: list[int] | None = None) -> Path:
         "loan_amount",
         "property_value",
         "interest_rate",
-        "combined_loan_to_value_ratio",
+        "loan_to_value_ratio",
         "debt_to_income_ratio",
         "income",
         "purchaser_type",
@@ -133,7 +133,7 @@ def ingest_hmda_atlanta(years: list[int] | None = None) -> Path:
     combined = pl.concat(frames, how="diagonal_relaxed")
 
     # Safely parse numeric columns (HMDA uses "Exempt" and "NA" strings)
-    numeric_cols = ["loan_amount", "property_value", "interest_rate", "combined_loan_to_value_ratio", "income"]
+    numeric_cols = ["loan_amount", "property_value", "interest_rate", "loan_to_value_ratio", "income"]
     cleaned = combined.with_columns(
         pl.col("activity_year").cast(pl.Int32),
         pl.col("county_code").cast(pl.Utf8),

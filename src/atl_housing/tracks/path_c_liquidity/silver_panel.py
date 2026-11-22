@@ -196,7 +196,7 @@ def build_hmda_credit_summary() -> Path:
             MEDIAN(CASE WHEN is_home_purchase AND is_originated THEN property_value END) AS median_property_value,
             MEDIAN(CASE WHEN is_home_purchase AND is_originated THEN loan_amount END) AS median_loan_amount,
             MEDIAN(CASE WHEN is_home_purchase AND is_originated THEN interest_rate END) AS median_interest_rate,
-            MEDIAN(CASE WHEN is_home_purchase AND is_originated THEN combined_loan_to_value_ratio END) AS median_ltv,
+            MEDIAN(CASE WHEN is_home_purchase AND is_originated THEN loan_to_value_ratio END) AS median_ltv,
             MEDIAN(CASE WHEN is_home_purchase AND is_originated THEN income END) AS median_buyer_income_k
         FROM read_parquet('{hmda_pq}')
         WHERE census_tract IS NOT NULL AND census_tract != ''
