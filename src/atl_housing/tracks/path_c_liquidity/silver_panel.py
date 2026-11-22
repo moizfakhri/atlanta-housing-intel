@@ -28,11 +28,43 @@ def build_zip_liquidity_panel() -> Path:
     zillow_pq = PATH_C_BRONZE / "zillow_atlanta_zip_panel.parquet"
     core_pq = PATH_C_BRONZE / "realtor_atlanta_zip_core.parquet"
     hot_pq = PATH_C_BRONZE / "realtor_atlanta_zip_hotness.parquet"
+    fred_pq = PATH_C_BRONZE / "fred_atlanta_macro.parquet"
+    has_fred = fred_pq.exists()
 
     out_path = PATH_C_SILVER / "atlanta_zip_liquidity_panel.parquet"
 
+    fred_view_sql = (
+        f"""
+        CREATE OR REPLACE VIEW v_fred_macro AS
+        SELECT
+            month_date::DATE AS month_date,
+            mortgage_30y,
+            mortgage_15y,
+            fed_funds,
+            atl_unemp_rate,
+            atl_nonfarm_emp,
+            atl_case_shiller
+        FROM read_parquet('{fred_pq}');
+        """
+        if has_fred
+        else """
+        CREATE OR REPLACE VIEW v_fred_macro AS
+        SELECT
+            NULL::DATE AS month_date,
+            NULL::DOUBLE AS mortgage_30y,
+            NULL::DOUBLE AS mortgage_15y,
+            NULL::DOUBLE AS fed_funds,
+            NULL::DOUBLE AS atl_unemp_rate,
+            NULL::DOUBLE AS atl_nonfarm_emp,
+            NULL::DOUBLE AS atl_case_shiller
+        WHERE FALSE;
+        """
+    )
+
     con.execute(
         f"""
+        {fred_view_sql}
+
         CREATE OR REPLACE VIEW v_zillow_zip AS
         SELECT
             zip_code,
@@ -109,6 +141,11 @@ def build_zip_liquidity_panel() -> Path:
                 h.demand_score,
                 h.hotness_rank,
                 h.buyer_views_vs_us,
+                f.mortgage_30y,
+                f.fed_funds,
+                f.atl_unemp_rate,
+                f.atl_nonfarm_emp,
+                f.atl_case_shiller,
                 -- Derived market microstructure signals (strictly contemporaneous)
                 CASE WHEN c.active_listing_count > 0
                     THEN c.price_reduced_count / c.active_listing_count END AS price_cut_share,
@@ -123,14 +160,17 @@ def build_zip_liquidity_panel() -> Path:
                 ON c.zip_code = z.zip_code AND c.month_date = z.month_date
             LEFT JOIN v_realtor_zip_hotness h
                 ON c.zip_code = h.zip_code AND c.month_date = h.month_date
+            LEFT JOIN v_fred_macro f
+                ON c.month_date = f.month_date
         )
         SELECT
             *,
-            -- Leakage-safe forward targets (strictly for label construction, NEVER used as features)
+            -- Cross-sectionally demeaned excess 6M return (ZIP minus Metro Atlanta monthly median)
+            (
+                (LEAD(zhvi, 6) OVER (PARTITION BY zip_code ORDER BY month_date) / NULLIF(zhvi, 0)) - 1.0
+            ) AS target_zhvi_ret_6m,
             (LEAD(zhvi, 3) OVER (PARTITION BY zip_code ORDER BY month_date) / NULLIF(zhvi, 0)) - 1.0
                 AS target_zhvi_ret_3m,
-            (LEAD(zhvi, 6) OVER (PARTITION BY zip_code ORDER BY month_date) / NULLIF(zhvi, 0)) - 1.0
-                AS target_zhvi_ret_6m,
             LEAD(median_dom, 3) OVER (PARTITION BY zip_code ORDER BY month_date) - median_dom
                 AS target_dom_delta_3m,
             LEAD(price_cut_share, 3) OVER (PARTITION BY zip_code ORDER BY month_date) - price_cut_share
