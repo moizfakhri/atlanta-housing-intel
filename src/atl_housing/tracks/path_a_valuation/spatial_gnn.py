@@ -23,13 +23,13 @@ import torch
 import torch.nn as nn
 from rich.console import Console
 from rich.table import Table
+from scipy.spatial import cKDTree
 from sklearn.metrics import mean_absolute_percentage_error, root_mean_squared_error
 from sklearn.preprocessing import StandardScaler
 
 from atl_housing.config import DATA_DIR, GOLD_DIR
 from atl_housing.tracks.path_a_valuation.spatial_conformal import (
     SpatiallyWeightedConformalRegressor,
-    haversine_km,
 )
 from atl_housing.tracks.path_a_valuation.valuation_benchmark import build_parcel_3d_dataset
 
@@ -116,6 +116,14 @@ class SpatialGraphTransformerNet(nn.Module):
         return pred_log_y, comp_weights, h
 
 
+def _latlon_to_unit_xyz(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
+    """Convert lat/lon degrees to 3D unit sphere vectors for exact O(N log N) Haversine kNN."""
+    lat_r = np.radians(lat)
+    lon_r = np.radians(lon)
+    cos_lat = np.cos(lat_r)
+    return np.column_stack([cos_lat * np.cos(lon_r), cos_lat * np.sin(lon_r), np.sin(lat_r)])
+
+
 def _build_knn_tensors(
     X_all: np.ndarray,
     lat: np.ndarray,
@@ -126,19 +134,25 @@ def _build_knn_tensors(
     k: int = 12,
     exclude_self: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Find K nearest training neighbors for each query index (strictly leakage-safe)."""
-    dists = haversine_km(lat[query_idx], lon[query_idx], lat[train_idx], lon[train_idx])
-    if exclude_self:
-        # Exclude exact self match when query_idx == train_idx
-        np.fill_diagonal(dists, np.inf)
+    """Find K nearest training neighbors via exact 3D unit-sphere cKDTree (O(N log N), <10MB RAM)."""
+    tree = cKDTree(_latlon_to_unit_xyz(lat[train_idx], lon[train_idx]))
+    q_xyz = _latlon_to_unit_xyz(lat[query_idx], lon[query_idx])
 
-    nn_local = np.argpartition(dists, k, axis=1)[:, :k]
-    # Sort the K neighbors by ascending distance
-    row_arange = np.arange(len(query_idx))[:, None]
-    nn_dists = dists[row_arange, nn_local]
-    order = np.argsort(nn_dists, axis=1)
-    nn_local = nn_local[row_arange, order]
-    nn_dists = nn_dists[row_arange, order]
+    k_query = k + 1 if exclude_self else k
+    chord_dists, nn_local = tree.query(q_xyz, k=k_query, workers=-1)
+    if exclude_self:
+        # Drop self (first neighbor when query_idx == train_idx, or exact index match)
+        nn_filtered = np.empty((len(query_idx), k), dtype=np.int64)
+        d_filtered = np.empty((len(query_idx), k), dtype=np.float64)
+        for row_i in range(len(query_idx)):
+            keep = [j for j in range(k_query) if int(nn_local[row_i, j]) != row_i][:k]
+            nn_filtered[row_i] = nn_local[row_i, keep]
+            d_filtered[row_i] = chord_dists[row_i, keep]
+        nn_local = nn_filtered
+        chord_dists = d_filtered
+
+    # Exact great-circle km from unit-sphere chord distance: d_km = 2 * R * arcsin(chord / 2)
+    nn_dists = 2.0 * 6371.0088 * np.arcsin(np.clip(chord_dists * 0.5, 0.0, 1.0))
     nn_global = train_idx[nn_local]
 
     x_nbr = X_all[nn_global]  # (Q, K, D)
@@ -383,15 +397,27 @@ def train_and_benchmark_gnn(
     all_gnn_dollars = np.exp(all_gnn_log.cpu().numpy())
     all_lgbm_dollars = np.exp(lgbm.predict(X_raw))
     all_hyb_dollars = np.exp(0.5 * np.log(all_lgbm_dollars) + 0.5 * np.log(all_gnn_dollars))
-    all_iv = swcp.predict_intervals(
-        all_hyb_dollars, lat, lon, scale=all_hyb_dollars, spatial=True
-    )
+    # Chunk SWCP inference into 2,500-row batches to avoid large temporary distance matrices
+    all_lower = np.empty(n, dtype=np.float64)
+    all_upper = np.empty(n, dtype=np.float64)
+    for start in range(0, n, 2500):
+        end = min(n, start + 2500)
+        iv_chunk = swcp.predict_intervals(
+            all_hyb_dollars[start:end],
+            lat[start:end],
+            lon[start:end],
+            scale=all_hyb_dollars[start:end],
+            spatial=True,
+        )
+        all_lower[start:end] = iv_chunk.lower
+        all_upper[start:end] = iv_chunk.upper
 
     weights_np = all_weights.cpu().numpy()
     parcel_ids = df["ParcelID"].to_list()
-    top_arcs_json: list[str] = []
+    top5_arcs_json: list[str] = []
+    top12_arcs_json: list[str] = []
     for i in range(n):
-        # Skip exact self if present in training set, take top-5 highest-attention comps
+        # Skip exact self if present in training set, rank all K neighbors by learned attention weight
         cand_indices = all_nn_global[i]
         cand_w = weights_np[i]
         pairs = [
@@ -400,7 +426,7 @@ def train_and_benchmark_gnn(
             if int(c_idx) != i
         ]
         pairs.sort(key=lambda t: t[1], reverse=True)
-        top5 = [
+        ranked = [
             {
                 "comp_id": parcel_ids[c_idx],
                 "lon": round(float(lon[c_idx]), 6),
@@ -408,9 +434,10 @@ def train_and_benchmark_gnn(
                 "value": round(float(y_dollars[c_idx]), 0),
                 "weight": round(w, 4),
             }
-            for c_idx, w in pairs[:5]
+            for c_idx, w in pairs
         ]
-        top_arcs_json.append(json.dumps(top5))
+        top5_arcs_json.append(json.dumps(ranked[:5]))
+        top12_arcs_json.append(json.dumps(ranked[:12]))
 
     PATH_A_GOLD.mkdir(parents=True, exist_ok=True)
     out_path = PATH_A_GOLD / "parcel_3d_predictions.parquet"
@@ -419,6 +446,8 @@ def train_and_benchmark_gnn(
             "ParcelID",
             "ZipCode",
             "NbrHood",
+            "ClassCode",
+            "LivUnits",
             "LandAcres",
             "TotAppr",
             "lon",
@@ -430,13 +459,14 @@ def train_and_benchmark_gnn(
         pl.Series("lgbm_pred", np.round(all_lgbm_dollars, 0)),
         pl.Series("gnn_pred", np.round(all_gnn_dollars, 0)),
         pl.Series("hybrid_pred", np.round(all_hyb_dollars, 0)),
-        pl.Series("swcp_lower", np.round(np.maximum(all_iv.lower, 0.0), 0)),
-        pl.Series("swcp_upper", np.round(all_iv.upper, 0)),
+        pl.Series("swcp_lower", np.round(np.maximum(all_lower, 0.0), 0)),
+        pl.Series("swcp_upper", np.round(all_upper, 0)),
         pl.Series(
             "mispricing_pct",
             np.round((all_hyb_dollars - y_dollars) / np.maximum(y_dollars, 1.0) * 100.0, 2),
         ),
-        pl.Series("top5_comps_json", top_arcs_json),
+        pl.Series("top5_comps_json", top5_arcs_json),
+        pl.Series("top12_comps_json", top12_arcs_json),
     )
     gold_df.write_parquet(out_path)
     console.print(f"[green]Exported Gold 3D Parcel Predictions + GNN Comps:[/green] {gold_df.height:,} rows -> {out_path}")

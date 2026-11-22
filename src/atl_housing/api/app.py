@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+import math
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -12,6 +14,7 @@ import duckdb
 import geopandas as gpd
 import polars as pl
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -19,13 +22,15 @@ from atl_housing.config import BRONZE_DIR, DUCKDB_PATH, GOLD_DIR, RAW_DIR, SILVE
 from atl_housing.tracks.path_c_liquidity.pricing_simulator import simulate_ask_frontier
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+METRO_3D_DB = GOLD_DIR / "path_a" / "metro_3d_buildings.duckdb"
 
 app = FastAPI(
     title="Atlanta Suburban Real Estate Intelligence API",
-    version="0.3.0",
-    description="Serves Path C liquidity/pricing/LODES, Path A true 3D GNN+SWCP buildings, Path E catalysts, Path B streetscapes, and Grounded Spatial SQL.",
+    version="0.4.0",
+    description="Serves Path C liquidity/pricing/LODES, Path A 5-county viewport-streamed 3D GNN+SWCP buildings, Path E catalysts, Path B streetscapes, and Grounded Spatial SQL.",
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 ORIGIN_COORDS: dict[tuple[str, str], tuple[float, float]] = {
@@ -79,6 +84,73 @@ def _load_zcta_centroids() -> dict[str, tuple[float, float]]:
     }
 
 
+_METRO_3D_CACHE: dict[str, Any] = {"mtime": None, "con": None}
+
+
+def _get_metro_3d_cursor() -> duckdb.DuckDBPyConnection:
+    """Return a thread-safe read-only DuckDB cursor over the 5-county 3D spatial index."""
+    if not METRO_3D_DB.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Run atl_housing.tracks.path_a_valuation.metro_3d_index first.",
+        )
+    mtime = METRO_3D_DB.stat().st_mtime
+    if _METRO_3D_CACHE["con"] is None or _METRO_3D_CACHE["mtime"] != mtime:
+        if _METRO_3D_CACHE["con"] is not None:
+            with contextlib.suppress(Exception):
+                _METRO_3D_CACHE["con"].close()
+        con = duckdb.connect(str(METRO_3D_DB), read_only=True)
+        con.execute("LOAD spatial; SET geometry_always_xy = true;")
+        _METRO_3D_CACHE["con"] = con
+        _METRO_3D_CACHE["mtime"] = mtime
+    return _METRO_3D_CACHE["con"].cursor()
+
+
+_BLDG_SELECT_COLS = """
+    overture_id, lon, lat, height_m, height_measured, num_floors, footprint_sqm,
+    bldg_type, zip_code, city, county_name, zip_zhvi, zip_hotness, zip_price_cut_pct,
+    zip_median_dom, has_gnn, parcel_id, n_units, actual, hybrid_pred, gnn_pred,
+    lgbm_pred, swcp_lower, swcp_upper, mispricing_pct, comps_json,
+    ST_AsGeoJSON(ST_GeomFromWKB(geom_wkb)) AS geom_json
+"""
+
+
+def _row_to_building_feature(r: tuple[Any, ...]) -> dict[str, Any]:
+    comps = json.loads(r[25]) if r[25] else []
+    return {
+        "type": "Feature",
+        "geometry": json.loads(r[26]),
+        "properties": {
+            "overture_id": str(r[0]),
+            "lon": float(r[1]),
+            "lat": float(r[2]),
+            "height_m": round(float(r[3]), 1),
+            "height_measured": bool(r[4]),
+            "num_floors": int(r[5]) if r[5] is not None else None,
+            "footprint_sqm": round(float(r[6]), 1),
+            "bldg_type": str(r[7] or "building"),
+            "zip": str(r[8] or ""),
+            "city": str(r[9] or ""),
+            "county": str(r[10] or ""),
+            "zip_zhvi": round(float(r[11]), 0) if r[11] is not None else None,
+            "zip_hotness": round(float(r[12]), 1) if r[12] is not None else None,
+            "zip_price_cut_pct": round(float(r[13]), 1) if r[13] is not None else None,
+            "zip_median_dom": round(float(r[14]), 1) if r[14] is not None else None,
+            "has_gnn": bool(r[15]),
+            "id": str(r[16]) if r[16] is not None else str(r[0]),
+            "n_units": int(r[17] or 1),
+            "actual": float(r[18]) if r[18] is not None else None,
+            "hybrid_pred": float(r[19]) if r[19] is not None else None,
+            "gnn_pred": float(r[20]) if r[20] is not None else None,
+            "lgbm_pred": float(r[21]) if r[21] is not None else None,
+            "swcp_lower": float(r[22]) if r[22] is not None else None,
+            "swcp_upper": float(r[23]) if r[23] is not None else None,
+            "mispricing_pct": float(r[24]) if r[24] is not None else None,
+            "comps": comps,
+        },
+    }
+
+
 @app.get("/")
 def serve_index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
@@ -91,17 +163,147 @@ def health() -> dict[str, Any]:
         "path_c_silver_exists": (SILVER_DIR / "path_c" / "atlanta_zip_liquidity_panel.parquet").exists(),
         "path_a_gold_exists": (GOLD_DIR / "path_a" / "parcel_3d_predictions.parquet").exists(),
         "path_a_footprints_exists": (GOLD_DIR / "path_a" / "buildings_3d_footprints.geojson").exists(),
+        "path_a_metro_3d_index_exists": METRO_3D_DB.exists(),
         "path_e_rezoning_exists": (BRONZE_DIR / "path_e" / "johns_creek_rezoning.parquet").exists(),
         "path_b_streetscape_exists": (BRONZE_DIR / "path_b" / "mapillary_suburb_samples.parquet").exists(),
     }
 
 
+@app.get("/api/path-a/buildings-viewport")
+def get_buildings_viewport(
+    west: float = Query(..., ge=-86.0, le=-82.5),
+    south: float = Query(..., ge=32.5, le=35.5),
+    east: float = Query(..., ge=-86.0, le=-82.5),
+    north: float = Query(..., ge=32.5, le=35.5),
+    zoom: float = Query(default=15.0, ge=5.0, le=22.0),
+    selected_oid: str | None = Query(default=None),
+    limit: int = Query(default=3200, ge=200, le=5000),
+) -> dict[str, Any]:
+    """Sub-10ms viewport-streamed 5-county Metro Atlanta 3D buildings with zoom-adaptive LOD.
+
+    Only returns buildings currently inside the camera viewport, prioritized by proximity
+    to screen center, and ALWAYS guarantees the selected building + its 5 comp buildings
+    are present in the returned GeoJSON so comp arcs can never point to missing buildings.
+    """
+    if zoom < 13.0:
+        return {
+            "type": "FeatureCollection",
+            "features": [],
+            "meta": {"too_far_out": True, "min_zoom": 13.0, "returned": 0, "gnn_count": 0},
+        }
+
+    if west > east:
+        west, east = east, west
+    if south > north:
+        south, north = north, south
+
+    # Clamp pathological huge bounding boxes to avoid pulling half the metro at once
+    if (east - west) > 0.25 or (north - south) > 0.25:
+        cx, cy = (west + east) / 2.0, (south + north) / 2.0
+        west, east = cx - 0.08, cx + 0.08
+        south, north = cy - 0.06, cy + 0.06
+
+    gx_min, gx_max = math.floor(west * 200), math.floor(east * 200)
+    gy_min, gy_max = math.floor(south * 200), math.floor(north * 200)
+    cx, cy = (west + east) / 2.0, (south + north) / 2.0
+
+    # Zoom-adaptive LOD: at medium zoom (13.0-14.3), skip tiny sheds/garages for smooth 60 FPS
+    lod_filter = "AND (footprint_sqm >= 100.0 OR has_gnn)" if zoom < 14.3 else ""
+    eff_limit = min(limit, 2200) if zoom < 14.3 else limit
+
+    cur = _get_metro_3d_cursor()
+    rows = cur.execute(
+        f"""
+        SELECT {_BLDG_SELECT_COLS}
+        FROM buildings_3d
+        WHERE gx BETWEEN ? AND ?
+          AND gy BETWEEN ? AND ?
+          AND lon BETWEEN ? AND ?
+          AND lat BETWEEN ? AND ?
+          {lod_filter}
+        ORDER BY ((lon - ?) * (lon - ?) + (lat - ?) * (lat - ?)) ASC
+        LIMIT ?
+        """,
+        [gx_min, gx_max, gy_min, gy_max, west, east, south, north, cx, cx, cy, cy, eff_limit],
+    ).fetchall()
+
+    feats_by_oid: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        f = _row_to_building_feature(r)
+        feats_by_oid[f["properties"]["overture_id"]] = f
+
+    # Belt-and-suspenders: guarantee selected building AND all 5 of its comp buildings are in the payload!
+    if selected_oid:
+        needed: set[str] = set()
+        if selected_oid not in feats_by_oid:
+            needed.add(selected_oid)
+            sel_row = cur.execute(
+                f"SELECT {_BLDG_SELECT_COLS} FROM buildings_3d WHERE overture_id = ?",
+                [selected_oid],
+            ).fetchone()
+            if sel_row is not None:
+                sf = _row_to_building_feature(sel_row)
+                feats_by_oid[selected_oid] = sf
+        sel_feat = feats_by_oid.get(selected_oid)
+        if sel_feat is not None:
+            for c in sel_feat["properties"].get("comps", []):
+                coid = c.get("comp_overture_id")
+                if coid and coid not in feats_by_oid:
+                    needed.add(str(coid))
+        missing_oids = [oid for oid in needed if oid not in feats_by_oid]
+        if missing_oids:
+            placeholders = ",".join("?" for _ in missing_oids)
+            extra_rows = cur.execute(
+                f"SELECT {_BLDG_SELECT_COLS} FROM buildings_3d WHERE overture_id IN ({placeholders})",
+                missing_oids,
+            ).fetchall()
+            for r in extra_rows:
+                f = _row_to_building_feature(r)
+                feats_by_oid[f["properties"]["overture_id"]] = f
+
+    features = list(feats_by_oid.values())
+    gnn_count = sum(1 for f in features if f["properties"]["has_gnn"])
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "meta": {
+            "too_far_out": False,
+            "returned": len(features),
+            "gnn_count": gnn_count,
+            "lod": "full" if zoom >= 14.3 else "medium",
+        },
+    }
+
+
+@app.get("/api/path-a/featured-home")
+def get_featured_home() -> dict[str, Any]:
+    """Return a clean default single-family Sandy Springs home with measured height & 5 comps."""
+    cur = _get_metro_3d_cursor()
+    row = cur.execute(
+        f"""
+        SELECT {_BLDG_SELECT_COLS}
+        FROM buildings_3d
+        WHERE has_gnn = TRUE
+          AND height_measured = TRUE
+          AND n_units = 1
+          AND bldg_type IN ('house', 'detached', 'residential', 'building')
+          AND actual BETWEEN 450000 AND 1200000
+          AND mispricing_pct BETWEEN 4 AND 35
+        ORDER BY ((lon + 84.376) * (lon + 84.376) + (lat - 33.930) * (lat - 33.930)) ASC
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No featured GNN home found.")
+    return _row_to_building_feature(row)
+
+
 @app.get("/api/path-a/buildings-3d")
 def get_buildings_3d_footprints() -> FileResponse:
-    """Serve true extruded Overture 3D building polygon footprints joined to GNN+SWCP predictions."""
+    """Serve verified Sandy Springs Overture 3D footprints joined to GNN+SWCP predictions."""
     gj = GOLD_DIR / "path_a" / "buildings_3d_footprints.geojson"
     if not gj.exists():
-        raise HTTPException(status_code=404, detail="Run path_a_valuation.spatial_cqr first.")
+        raise HTTPException(status_code=404, detail="Run path_a_valuation.metro_3d_index first.")
     return FileResponse(gj, media_type="application/geo+json")
 
 
@@ -485,28 +687,48 @@ def spatial_sql_analyst(q: str = Query(..., min_length=3, max_length=240)) -> di
 
     # Route 1: Parcel-level 3D undervalued / low-uncertainty query
     if any(w in ql for w in ["parcel", "undervalued", "building", "gnn", "3d", "home"]):
-        gold_pq = GOLD_DIR / "path_a" / "parcel_3d_predictions.parquet"
-        cap_clause = f"AND TotAppr <= {price_cap}" if price_cap else ""
-        sql = f"""
-            SELECT ParcelID AS id, ZipCode AS zip, TotAppr AS appraisal,
-                   hybrid_pred, mispricing_pct, swcp_lower, swcp_upper, lon, lat
-            FROM read_parquet('{gold_pq}')
-            WHERE mispricing_pct > 5 {cap_clause}
-            ORDER BY mispricing_pct DESC
-            LIMIT 8
-        """
-        df = con.sql(sql).df()
-        con.close()
+        if METRO_3D_DB.exists():
+            con.close()
+            cur = _get_metro_3d_cursor()
+            cap_clause = f"AND actual <= {price_cap}" if price_cap else ""
+            sql = f"""
+                SELECT overture_id, parcel_id AS id, zip_code AS zip, actual AS appraisal,
+                       hybrid_pred, mispricing_pct, swcp_lower, swcp_upper, lon, lat
+                FROM buildings_3d
+                WHERE has_gnn = TRUE AND n_units = 1 AND mispricing_pct > 5 {cap_clause}
+                ORDER BY mispricing_pct DESC
+                LIMIT 8
+            """
+            df = cur.execute(sql).df()
+        else:
+            gold_pq = GOLD_DIR / "path_a" / "parcel_3d_predictions.parquet"
+            cap_clause = f"AND TotAppr <= {price_cap}" if price_cap else ""
+            sql = f"""
+                SELECT ParcelID AS id, CAST(CAST(ZipCode AS BIGINT) AS VARCHAR) AS zip, TotAppr AS appraisal,
+                       hybrid_pred, mispricing_pct, swcp_lower, swcp_upper, lon, lat
+                FROM read_parquet('{gold_pq}')
+                WHERE mispricing_pct > 5 {cap_clause}
+                ORDER BY mispricing_pct DESC
+                LIMIT 8
+            """
+            df = con.sql(sql).df()
+            con.close()
         rows = df.to_dict(orient="records")
         fly = (
-            {"mode": "path_a", "lon": float(rows[0]["lon"]), "lat": float(rows[0]["lat"]), "zoom": 15.2}
+            {
+                "mode": "path_a",
+                "lon": float(rows[0]["lon"]),
+                "lat": float(rows[0]["lat"]),
+                "zoom": 16.0,
+                "overture_id": str(rows[0].get("overture_id") or ""),
+            }
             if rows
-            else {"mode": "path_a", "lon": -84.385, "lat": 33.888, "zoom": 13.6}
+            else {"mode": "path_a", "lon": -84.376, "lat": 33.930, "zoom": 15.6}
         )
         return {
             "query": q,
             "sql": " ".join(sql.split()),
-            "summary": f"Found {len(rows)} undervalued 3D parcels where Hybrid GNN+LightGBM exceeds appraisal by >5%.",
+            "summary": f"Found {len(rows)} undervalued homes where AI estimate exceeds tax appraisal by >5%.",
             "fly_to": fly,
             "rows": rows,
         }

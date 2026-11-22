@@ -22,12 +22,12 @@ An end-to-end Data Engineering, Deep ML, Causal/Survival Econometrics, and Inter
 
 ## Architecture & Production Stack
 
-- **Data Engineering:** `Dagster` (11 software-defined assets) → `Polars + DuckDB Spatial/H3 + GeoParquet` → `dbt-duckdb` (`staging → marts`, `11/11` passing incl. singular anti-leakage SQL tests) → `GitHub Actions CI` + `Docker Compose`.
-- **Interactive 3D Twin (`FastAPI` + `MapLibre GL JS` + `deck.gl`):**
-  - **3,500 true extruded Overture 3D building polygon footprints** with clickable **PyTorch GNN attention comp arcs**
-  - **200+ 3D Metro Atlanta ZIP Liquidity Towers** + live **Seller Ask-Price Frontier Simulator**
-  - **3D IRS Wealth Migration Arcs** & **3D Census LODES8 Commuter Flow Arcs**
-  - **Grounded Spatial SQL Analyst Bar** executing live read-only DuckDB SQL over Gold marts and flying the 3D camera directly to matching suburbs/parcels
+- **Data Engineering:** `Dagster` (12 software-defined assets) → `Polars + DuckDB Spatial/H3 + GeoParquet` → `dbt-duckdb` (`staging → marts`, `11/11` passing incl. singular anti-leakage SQL tests) → `GitHub Actions CI` + `Docker Compose`.
+- **Interactive 5-County Geospatial Atlas (`FastAPI` + `GZip` + `MapLibre GL JS` + `deck.gl` + `Chart.js`):**
+  - **1,153,207 true Overture 3D building footprints (`885,909` measured heights) across all 5 counties**, served via a spatially grid-sorted DuckDB viewport-streaming engine (**7–13 ms** query latency, zoom-adaptive LOD, `+25%` buffered client cache, `AbortController`)
+  - **18,855 distinct Sandy Springs homes with PyTorch GNN + SWCP valuations** and roof-anchored, deduplicated Top-5 comparable-sale arcs (`0` dangling / `0` duplicate comps)
+  - **201 real TIGER Metro Atlanta ZIP polygons** + live 10-year trend sparklines + **Seller Ask-Price Optimizer**
+  - **IRS Wealth Migration Arcs**, **Census LODES8 Commuter Flows**, **Rezoning & Mapillary Street Canopy Layers**, **6 Live Model Benchmark Charts**, and **Grounded DuckDB Spatial SQL Search**
 
 ## Quickstart
 

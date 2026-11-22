@@ -86,3 +86,45 @@ def test_fastapi_3d_and_simulator_endpoints() -> None:
     r_an = client.get("/api/analytics/summary")
     assert r_an.status_code == 200
     assert len(r_an.json()["hmda_2024"]) == 5
+
+
+def test_viewport_3d_streaming_and_zero_dangling_comps() -> None:
+    # 1. Featured Sandy Springs home loads cleanly with clean 5-digit ZIP and 5 distinct comps
+    r_feat = client.get("/api/path-a/featured-home")
+    assert r_feat.status_code == 200
+    f_props = r_feat.json()["properties"]
+    assert f_props["has_gnn"] is True
+    assert "." not in f_props["zip"]
+    comps = f_props["comps"]
+    assert len(comps) == 5
+    comp_oids = [c["comp_overture_id"] for c in comps]
+    assert len(set(comp_oids)) == 5, "Duplicate comp buildings detected!"
+    assert f_props["overture_id"] not in comp_oids
+
+    # 2. Viewport streaming in Sandy Springs ALWAYS includes selected home + all 5 comp buildings
+    lon, lat = f_props["lon"], f_props["lat"]
+    r_vp = client.get(
+        f"/api/path-a/buildings-viewport?west={lon - 0.004}&south={lat - 0.003}"
+        f"&east={lon + 0.004}&north={lat + 0.003}&zoom=16.0&selected_oid={f_props['overture_id']}"
+    )
+    assert r_vp.status_code == 200
+    vp_data = r_vp.json()
+    vp_oids = {feat["properties"]["overture_id"] for feat in vp_data["features"]}
+    assert f_props["overture_id"] in vp_oids
+    for coid in comp_oids:
+        assert coid in vp_oids, f"Dangling comp {coid} missing from viewport response!"
+
+    # 3. Viewport streaming outside Sandy Springs (e.g. Alpharetta & Decatur) returns real 3D buildings!
+    r_alpha = client.get(
+        "/api/path-a/buildings-viewport?west=-84.300&south=34.070&east=-84.288&north=34.080&zoom=15.5"
+    )
+    assert r_alpha.status_code == 200
+    assert len(r_alpha.json()["features"]) >= 50
+
+    # 4. Zoomed-out request (<13.0) returns instantly with 0 features (LOD protection)
+    r_far = client.get(
+        "/api/path-a/buildings-viewport?west=-84.6&south=33.7&east=-84.0&north=34.1&zoom=10.0"
+    )
+    assert r_far.status_code == 200
+    assert r_far.json()["meta"]["too_far_out"] is True
+    assert len(r_far.json()["features"]) == 0

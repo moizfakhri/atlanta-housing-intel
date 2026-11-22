@@ -30,9 +30,10 @@
       --amber: #d97706;
       --amber-soft: #fef3c7;
       --rose: #e11d48;
+      --rose-soft: #ffe4e6;
       --scrollbar-thumb: #94a3b8;
       --scrollbar-track: #f1f5f9;
-      --topbar-h: 58px;
+      --topbar-h: 54px;
       scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
       accent-color: var(--brand);
     }
@@ -71,7 +72,7 @@
       font-size: 14px;
     }
 
-    /* ==================== TOP NAVIGATION BAR ==================== */
+    /* ==================== COMPACT RESPONSIVE TOPBAR ==================== */
     .topbar {
       position: fixed;
       inset-block-start: 0;
@@ -83,54 +84,61 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 0 14px;
+      gap: 8px;
+      padding: 0 12px;
       z-index: 30;
       box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
     }
 
-    .brand { display: flex; align-items: center; gap: 9px; flex: none; }
+    .brand { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; min-width: 0; }
     .brand-badge {
-      width: 32px; height: 32px; border-radius: 9px;
+      width: 30px; height: 30px; border-radius: 8px; flex: none;
       background: linear-gradient(135deg, #0284c7, #059669);
-      color: #ffffff; font-weight: 800; font-size: 0.82rem;
+      color: #ffffff; font-weight: 800; font-size: 0.78rem;
       display: grid; place-items: center;
     }
-    .brand-text h1 { font-size: 0.92rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
-    .brand-text span { display: block; font-size: 0.68rem; color: var(--text-muted); }
+    .brand-text { min-width: 0; }
+    .brand-text h1 {
+      font-size: 0.88rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .brand-text span {
+      display: block; font-size: 0.66rem; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
-    /* Single-row accessible tabs (per modern-web-guidance tabs guide) */
+    /* Single-row accessible tabs — compact so all 5 tabs + controls never clip */
     .nav-tabs {
       display: flex; align-items: stretch; overflow-x: auto;
-      gap: 2px; height: 100%; scrollbar-width: none;
+      gap: 2px; height: 100%; scrollbar-width: none; flex: 0 1 auto;
     }
     .nav-tabs::-webkit-scrollbar { display: none; }
     .nav-tab {
       position: relative; flex: none; background: transparent; border: none;
-      color: var(--text-secondary); padding: 0 12px;
-      font-size: 0.79rem; font-weight: 600; cursor: pointer;
-      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+      color: var(--text-secondary); padding: 0 9px;
+      font-size: 0.77rem; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
     }
     .nav-tab:hover { color: var(--text-primary); background: rgba(2, 132, 199, 0.05); }
     .nav-tab:focus-visible { outline: 2px solid var(--brand); outline-offset: -3px; border-radius: 4px; }
     .nav-tab[aria-selected="true"] { color: var(--brand); }
     .nav-tab[aria-selected="true"]::after {
-      content: ""; position: absolute; inset: auto 8px 0 8px;
+      content: ""; position: absolute; inset: auto 6px 0 6px;
       border-block-end: 3px solid var(--brand);
     }
     .step-num {
-      width: 18px; height: 18px; border-radius: 999px;
+      width: 17px; height: 17px; border-radius: 999px;
       background: #e2e8f0; color: #334155;
-      font-size: 0.67rem; font-weight: 800;
+      font-size: 0.65rem; font-weight: 800;
       display: inline-grid; place-items: center;
     }
     .nav-tab[aria-selected="true"] .step-num { background: var(--brand); color: #ffffff; }
 
-    .top-controls { display: flex; align-items: center; gap: 6px; flex: none; }
+    .top-controls { display: flex; align-items: center; gap: 5px; flex: none; }
     .pill-btn {
       background: #ffffff; color: var(--text-primary);
       border: 1px solid var(--border); border-radius: 7px;
-      padding: 5px 10px; font-size: 0.75rem; font-weight: 700;
+      padding: 4px 9px; font-size: 0.73rem; font-weight: 700;
       cursor: pointer; white-space: nowrap;
     }
     .pill-btn:hover { border-color: var(--brand); }
@@ -141,7 +149,7 @@
     .top-controls select {
       background: #ffffff; color: var(--text-primary);
       border: 1px solid var(--border); border-radius: 7px;
-      padding: 5px 8px; font-size: 0.75rem; font-weight: 600;
+      padding: 4px 6px; font-size: 0.73rem; font-weight: 600;
     }
 
     /* ==================== WORKSPACE & MAP ==================== */
@@ -153,16 +161,48 @@
     }
     #map { position: absolute; inset: 0; width: 100%; height: 100%; }
 
+    /* Floating viewport stream status pill */
+    .viewport-pill {
+      position: absolute;
+      inset-block-end: 16px;
+      inset-inline-start: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.88);
+      color: #f8fafc;
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 16;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+      white-space: nowrap;
+      pointer-events: auto;
+    }
+    .viewport-pill[hidden] { display: none; }
+    .viewport-pill .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #34d399;
+    }
+    .viewport-pill .dot.loading { background: #38bdf8; }
+    .viewport-pill .dot.warn { background: #fbbf24; }
+    .viewport-pill button {
+      background: #0284c7; color: #ffffff; border: none; border-radius: 999px;
+      padding: 3px 9px; font-size: 0.70rem; font-weight: 700; cursor: pointer;
+    }
+
     /* ==================== LEFT INSPECTOR DRAWER ==================== */
     .drawer {
       position: absolute;
-      inset-block: 14px;
-      inset-inline-start: 14px;
-      width: min(395px, calc(100vw - 28px));
+      inset-block: 12px;
+      inset-inline-start: 12px;
+      width: min(372px, calc(100vw - 24px));
       background: var(--bg-glass);
       backdrop-filter: blur(14px);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 13px;
       display: flex;
       flex-direction: column;
       z-index: 15;
@@ -173,63 +213,66 @@
     .drawer.collapsed { transform: translateX(calc(-100% - 24px)); pointer-events: none; }
     .drawer-body {
       flex: 1; overflow-y: auto;
-      padding: 12px 14px 16px;
-      display: flex; flex-direction: column; gap: 10px;
+      padding: 10px 12px 14px;
+      display: flex; flex-direction: column; gap: 9px;
     }
 
-    /* Contextual "What You're Looking At" callout */
+    /* Sleek 2-line contextual banner (fixes awkward mid-sentence line breaks!) */
     .callout {
       background: var(--brand-soft);
       border: 1px solid #bae6fd;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 0.77rem;
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 0.74rem;
       color: #0c4a6e;
-      line-height: 1.42;
+      line-height: 1.4;
     }
-    .callout strong { display: block; font-size: 0.79rem; margin-bottom: 2px; color: #0369a1; }
+    .callout > strong:first-child { display: block; font-size: 0.76rem; margin-bottom: 2px; color: #0369a1; }
 
     .card {
       background: #ffffff;
       border: 1px solid var(--border-soft);
       border-radius: 10px;
-      padding: 11px 13px;
+      padding: 10px 12px;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     }
-    .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 6px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; gap: 6px; }
     .card h2 {
-      font-size: 0.72rem; text-transform: uppercase;
+      font-size: 0.70rem; text-transform: uppercase;
       letter-spacing: 0.05em; color: var(--text-muted); font-weight: 800;
     }
     .badge-tag {
-      font-size: 0.66rem; font-weight: 700; padding: 2px 7px;
+      font-size: 0.65rem; font-weight: 700; padding: 2px 7px;
       border-radius: 999px; background: var(--emerald-soft); color: #065f46;
       white-space: nowrap;
     }
+    .badge-tag.neutral { background: #f1f5f9; color: #334155; }
+    .badge-tag.brand { background: var(--brand-soft); color: #0369a1; }
 
-    /* Search bar */
-    .query-row { display: flex; gap: 6px; }
+    /* Compact search bar */
+    .query-row { display: flex; gap: 5px; }
     .query-row input {
       flex: 1; background: #ffffff; color: var(--text-primary);
       border: 1px solid var(--border); border-radius: 7px;
-      padding: 7px 9px; font-size: 0.78rem;
+      padding: 6px 8px; font-size: 0.76rem;
     }
     .query-row button {
       background: var(--brand); color: #ffffff; border: none;
-      border-radius: 7px; padding: 7px 12px; font-weight: 700; cursor: pointer; font-size: 0.77rem;
+      border-radius: 7px; padding: 6px 11px; font-weight: 700; cursor: pointer; font-size: 0.75rem;
     }
-    .chip-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
     .chip {
       background: #f1f5f9; color: var(--text-secondary);
       border: 1px solid var(--border-soft); border-radius: 999px;
-      padding: 3px 9px; font-size: 0.70rem; font-weight: 600; cursor: pointer;
+      padding: 2px 8px; font-size: 0.68rem; font-weight: 600; cursor: pointer;
     }
     .chip:hover { background: var(--brand-soft); color: #0369a1; border-color: #bae6fd; }
+    .chip.featured { background: var(--emerald-soft); color: #065f46; border-color: #a7f3d0; }
     .sql-box {
       margin-top: 6px; padding: 7px 8px; background: #f1f5f9;
       border: 1px solid var(--border-soft); border-radius: 6px;
       font-family: ui-monospace, SFMono-Regular, monospace;
-      font-size: 0.67rem; color: #0369a1; overflow-x: auto;
+      font-size: 0.66rem; color: #0369a1; overflow-x: auto;
     }
 
     /* Segmented buttons */
@@ -237,84 +280,66 @@
     .seg-btn {
       background: var(--bg-card); color: var(--text-secondary);
       border: 1px solid var(--border-soft); border-radius: 7px;
-      padding: 6px 8px; font-size: 0.74rem; font-weight: 600; cursor: pointer;
+      padding: 5px 8px; font-size: 0.72rem; font-weight: 600; cursor: pointer;
     }
     .seg-btn.active { background: var(--brand-soft); color: #0369a1; border-color: var(--brand); font-weight: 700; }
 
-    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-    .kpi { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 8px; padding: 7px 9px; }
-    .kpi .k { font-size: 0.67rem; color: var(--text-muted); font-weight: 600; }
-    .kpi .v { font-size: 0.90rem; font-weight: 800; margin-top: 2px; color: var(--text-primary); }
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .kpi { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 8px; padding: 6px 8px; }
+    .kpi .k { font-size: 0.66rem; color: var(--text-muted); font-weight: 600; }
+    .kpi .v { font-size: 0.88rem; font-weight: 800; margin-top: 1px; color: var(--text-primary); }
 
-    /* Plain-English takeaway box inside simulator */
     .verdict-box {
-      margin-top: 8px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: var(--emerald-soft);
-      border: 1px solid #a7f3d0;
-      color: #065f46;
-      font-size: 0.76rem;
-      line-height: 1.4;
-      font-weight: 600;
+      margin-top: 7px; padding: 7px 9px; border-radius: 8px;
+      background: var(--emerald-soft); border: 1px solid #a7f3d0;
+      color: #065f46; font-size: 0.74rem; line-height: 1.38; font-weight: 600;
     }
 
-    /* SWCP visual interval bar */
     .interval-box {
-      margin-top: 9px; background: var(--bg-card);
-      border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px 10px;
+      margin-top: 8px; background: var(--bg-card);
+      border: 1px solid var(--border-soft); border-radius: 8px; padding: 7px 9px;
     }
-    .interval-track { position: relative; height: 10px; border-radius: 999px; background: #e2e8f0; margin: 8px 0 5px; }
+    .interval-track { position: relative; height: 9px; border-radius: 999px; background: #e2e8f0; margin: 7px 0 4px; }
     .interval-band { position: absolute; inset-block: 0; background: linear-gradient(90deg, #38bdf8, #10b981); border-radius: 999px; }
     .interval-dot {
-      position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+      position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
       transform: translate(-50%, -50%); border: 2px solid #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.35);
     }
 
-    .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
-    .control-row label { font-size: 0.75rem; color: var(--text-muted); min-width: 78px; font-weight: 600; }
+    .control-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .control-row label { font-size: 0.73rem; color: var(--text-muted); min-width: 76px; font-weight: 600; }
     .control-row input {
       flex: 1; background: #ffffff; color: var(--text-primary);
-      border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 0.79rem;
+      border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 0.77rem;
     }
     .action-btn {
       width: 100%; background: var(--brand); color: #ffffff; border: none;
-      border-radius: 7px; padding: 7px 12px; font-weight: 700; cursor: pointer; font-size: 0.79rem;
+      border-radius: 7px; padding: 7px 12px; font-weight: 700; cursor: pointer; font-size: 0.77rem;
     }
-    .check-label { display: flex; align-items: center; gap: 8px; font-size: 0.77rem; cursor: pointer; margin-top: 6px; }
+    .check-label { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; margin-top: 5px; }
 
-    .chart-wrap { position: relative; height: 145px; margin-top: 8px; }
+    .chart-wrap { position: relative; height: 135px; margin-top: 7px; }
 
-    /* Progressive-disclosure <details> accordions (per modern-web-guidance accordion guide) */
+    /* Progressive-disclosure <details> accordions */
     details.disclosure {
-      margin-top: 8px;
+      margin-top: 7px;
       border: 1px solid var(--border-soft);
       border-radius: 8px;
       background: var(--bg-card);
     }
     details.disclosure > summary {
       list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5ch;
-      padding: 7px 10px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--text-secondary);
-      cursor: pointer;
+      display: flex; align-items: center; gap: 0.5ch;
+      padding: 6px 9px; font-size: 0.73rem; font-weight: 700;
+      color: var(--text-secondary); cursor: pointer;
     }
     details.disclosure > summary::-webkit-details-marker { display: none; }
     details.disclosure > summary::before {
-      content: "▸";
-      display: inline-block;
-      transition: rotate 0.2s;
-      color: var(--brand);
+      content: "▸"; display: inline-block; transition: rotate 0.2s; color: var(--brand);
     }
     details.disclosure[open] > summary::before { rotate: 90deg; }
     details.disclosure::details-content {
-      interpolate-size: allow-keywords;
-      overflow: clip;
-      contain: layout;
+      interpolate-size: allow-keywords; overflow: clip; contain: layout;
     }
     details.disclosure:not([open])::details-content { block-size: 0; }
     @media (prefers-reduced-motion: no-preference) {
@@ -322,57 +347,59 @@
         transition: block-size 0.22s ease, content-visibility 0.22s ease allow-discrete;
       }
     }
-    .disclosure-inner { padding: 0 10px 10px; }
+    .disclosure-inner { padding: 0 9px 9px; }
 
     /* Responsive accessible table */
     .table-wrapper {
-      overflow: auto; max-inline-size: 100%; max-block-size: 205px;
-      container-type: inline-size; margin-top: 6px;
+      overflow: auto; max-inline-size: 100%; max-block-size: 195px;
+      container-type: inline-size; margin-top: 5px;
       border-radius: 7px; border: 1px solid var(--border-soft); background: #ffffff;
     }
-    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.73rem; }
-    caption { text-align: left; padding: 5px 8px; font-size: 0.69rem; color: var(--text-muted); background: #f8fafc; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.72rem; }
+    caption { text-align: left; padding: 4px 7px; font-size: 0.67rem; color: var(--text-muted); background: #f8fafc; }
     thead { position: sticky; inset-block-start: 0; z-index: 1; background: #f1f5f9; }
     th, td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
     th:first-child, td:first-child { text-align: left; }
     tbody th { position: sticky; inset-inline-start: 0; background: #ffffff; font-weight: 600; }
     tr.optimal-row td, tr.optimal-row th { background: var(--emerald-soft); color: #065f46; font-weight: 700; }
+    tr.comp-row { cursor: pointer; }
+    tr.comp-row:hover td, tr.comp-row:hover th { background: var(--brand-soft); }
 
-    @container (width < 290px) {
+    @container (width < 270px) {
       table, thead, tbody, tr, th, td { display: block; }
       thead { display: none; }
-      tr { margin-block-end: 0.65rem; border: 1px solid var(--border-soft); }
+      tr { margin-block-end: 0.55rem; border: 1px solid var(--border-soft); }
       tbody th { position: sticky; inset-block-start: 0; z-index: 2; }
       td::before { content: attr(data-label) ": "; color: var(--text-muted); }
     }
 
     /* ==================== FULL-SCREEN RESEARCH ANALYTICS ==================== */
     .analytics-panel { position: absolute; inset: 0; z-index: 20; background: #f1f5f9; overflow-y: auto; }
-    .analytics-inner { max-width: 1240px; margin: 0 auto; padding: 20px 22px 40px; display: flex; flex-direction: column; gap: 16px; }
+    .analytics-inner { max-width: 1240px; margin: 0 auto; padding: 18px 20px 36px; display: flex; flex-direction: column; gap: 15px; }
     .hero-banner {
       background: linear-gradient(135deg, #0f172a, #0369a1);
-      color: #ffffff; border-radius: 14px; padding: 20px 24px;
+      color: #ffffff; border-radius: 13px; padding: 18px 22px;
       display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
     }
-    .hero-banner h2 { font-size: 1.2rem; font-weight: 800; }
-    .hero-banner p { font-size: 0.83rem; color: #cbd5e1; margin-top: 4px; max-width: 650px; }
-    .hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
-    .hero-stat { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 9px 13px; min-width: 120px; }
-    .hero-stat .num { font-size: 1.15rem; font-weight: 800; color: #38bdf8; }
-    .hero-stat .lbl { font-size: 0.68rem; color: #e2e8f0; margin-top: 2px; }
-    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(410px, 1fr)); gap: 16px; }
-    .chart-card { background: #ffffff; border: 1px solid var(--border-soft); border-radius: 12px; padding: 15px 17px; box-shadow: 0 2px 8px rgba(15,23,42,0.05); }
-    .chart-card h3 { font-size: 0.90rem; font-weight: 800; }
-    .chart-card .sub { font-size: 0.75rem; color: var(--text-muted); margin: 3px 0 10px; }
-    .chart-card-canvas { position: relative; height: 240px; }
+    .hero-banner h2 { font-size: 1.15rem; font-weight: 800; }
+    .hero-banner p { font-size: 0.81rem; color: #cbd5e1; margin-top: 4px; max-width: 640px; }
+    .hero-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    .hero-stat { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 8px 12px; min-width: 115px; }
+    .hero-stat .num { font-size: 1.1rem; font-weight: 800; color: #38bdf8; }
+    .hero-stat .lbl { font-size: 0.67rem; color: #e2e8f0; margin-top: 2px; }
+    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 15px; }
+    .chart-card { background: #ffffff; border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(15,23,42,0.05); }
+    .chart-card h3 { font-size: 0.88rem; font-weight: 800; }
+    .chart-card .sub { font-size: 0.74rem; color: var(--text-muted); margin: 3px 0 9px; }
+    .chart-card-canvas { position: relative; height: 235px; }
 
     /* ==================== LIGHT-DISMISS HOW-TO-USE DIALOG ==================== */
     dialog#guide-dialog {
       margin: auto;
-      width: min(640px, calc(100vw - 32px));
+      width: min(630px, calc(100vw - 32px));
       max-height: calc(100vh - 48px);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 15px;
       background: #ffffff;
       color: var(--text-primary);
       padding: 0;
@@ -384,53 +411,87 @@
       backdrop-filter: blur(3px);
     }
     .dialog-head {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-soft);
-      display: flex; align-items: center; justify-content: space-between;
-      background: #f8fafc;
+      padding: 15px 18px; border-bottom: 1px solid var(--border-soft);
+      display: flex; align-items: center; justify-content: space-between; background: #f8fafc;
     }
-    .dialog-head h2 { font-size: 1.05rem; font-weight: 800; }
-    .dialog-body { padding: 16px 20px 20px; overflow-y: auto; max-height: 72vh; display: flex; flex-direction: column; gap: 14px; }
+    .dialog-head h2 { font-size: 1.02rem; font-weight: 800; }
+    .dialog-body { padding: 15px 18px 18px; overflow-y: auto; max-height: 72vh; display: flex; flex-direction: column; gap: 13px; }
     .guide-step {
-      display: flex; gap: 11px; align-items: flex-start;
-      padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 10px; background: #f8fafc;
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 9px 11px; border: 1px solid var(--border-soft); border-radius: 10px; background: #f8fafc;
     }
     .guide-step .num {
-      flex: none; width: 24px; height: 24px; border-radius: 999px;
-      background: var(--brand); color: #ffffff; font-weight: 800; font-size: 0.78rem;
+      flex: none; width: 22px; height: 22px; border-radius: 999px;
+      background: var(--brand); color: #ffffff; font-weight: 800; font-size: 0.74rem;
       display: grid; place-items: center;
     }
-    .guide-step h3 { font-size: 0.84rem; font-weight: 800; margin-bottom: 2px; }
-    .guide-step p { font-size: 0.77rem; color: var(--text-secondary); line-height: 1.42; }
+    .guide-step h3 { font-size: 0.82rem; font-weight: 800; margin-bottom: 2px; }
+    .guide-step p { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
     .tour-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .tour-btn {
       text-align: left; background: #ffffff; border: 1px solid #bae6fd;
-      border-radius: 10px; padding: 10px 12px; cursor: pointer;
+      border-radius: 10px; padding: 9px 11px; cursor: pointer;
     }
     .tour-btn:hover { background: var(--brand-soft); border-color: var(--brand); }
-    .tour-btn strong { display: block; font-size: 0.79rem; color: #0369a1; margin-bottom: 2px; }
-    .tour-btn span { display: block; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; }
+    .tour-btn strong { display: block; font-size: 0.77rem; color: #0369a1; margin-bottom: 2px; }
+    .tour-btn span { display: block; font-size: 0.71rem; color: var(--text-secondary); line-height: 1.35; }
 
-    /* ==================== LEGEND & TOOLTIP ==================== */
+    /* ==================== LEGEND & CLEAN MINI HOVER CARD ==================== */
     .legend {
       position: absolute; inset-block-end: 16px; inset-inline-end: 16px;
       background: var(--bg-glass); backdrop-filter: blur(12px);
       border: 1px solid var(--border); border-radius: 10px;
-      padding: 10px 14px; font-size: 0.74rem; z-index: 15; max-width: 310px;
+      padding: 9px 12px; font-size: 0.72rem; z-index: 15; max-width: 280px;
       box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
     }
-    .legend-bar { height: 8px; border-radius: 4px; margin: 6px 0; background: linear-gradient(90deg, #e11d48, #f59e0b, #10b981); }
-    .legend-labels { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.69rem; }
+    .legend-bar { height: 7px; border-radius: 4px; margin: 5px 0; background: linear-gradient(90deg, #e11d48, #f59e0b, #10b981); }
+    .legend-labels { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.67rem; }
 
+    /* Clean, scannable, zero-clutter hover card */
     .tooltip {
-      position: fixed; pointer-events: none; background: rgba(255, 255, 255, 0.98);
-      border: 1px solid #94a3b8; border-radius: 9px; padding: 8px 11px;
-      font-size: 0.75rem; color: var(--text-primary); z-index: 40; display: none;
-      max-width: 290px; line-height: 1.45; box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+      position: fixed;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 8px 11px;
+      font-size: 0.74rem;
+      color: var(--text-primary);
+      z-index: 40;
+      display: none;
+      min-width: 195px;
+      max-width: 265px;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    }
+    .tip-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 5px; padding-bottom: 4px; border-bottom: 1px solid #f1f5f9;
+    }
+    .tip-title { font-weight: 800; font-size: 0.77rem; color: var(--text-primary); }
+    .tip-pill {
+      font-size: 0.65rem; font-weight: 800; padding: 1px 6px; border-radius: 999px; white-space: nowrap;
+      background: #f1f5f9; color: #334155;
+    }
+    .tip-pill.pos { background: var(--emerald-soft); color: #065f46; }
+    .tip-pill.neg { background: var(--rose-soft); color: #9f1239; }
+    .tip-pill.blue { background: var(--brand-soft); color: #0369a1; }
+    .tip-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+      line-height: 1.5; font-size: 0.72rem;
+    }
+    .tip-k { color: var(--text-muted); font-weight: 500; }
+    .tip-v { color: var(--text-primary); font-weight: 700; text-align: right; }
+    .tip-foot {
+      margin-top: 4px; padding-top: 3px; border-top: 1px solid #f1f5f9;
+      font-size: 0.65rem; color: var(--brand); font-weight: 600;
     }
 
-    @media (max-width: 1080px) {
+    @media (max-width: 1280px) {
       .brand-text span { display: none; }
+    }
+    @media (max-width: 1060px) {
+      .brand-text h1 { font-size: 0.80rem; }
+      .nav-tab { padding: 0 7px; font-size: 0.73rem; }
       .analytics-grid, .tour-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -441,38 +502,38 @@
       <div class="brand-badge">ATL</div>
       <div class="brand-text">
         <h1>Metro Atlanta Housing Intelligence Atlas</h1>
-        <span>5 Suburban Counties · 201 ZIPs · 27.8K Parcels · 836K Mortgage Loans</span>
+        <span>5 Counties · 201 ZIPs · 1.15M 3D Buildings · 836K Loans</span>
       </div>
     </div>
 
     <div class="nav-tabs" role="tablist" aria-label="Explorer sections">
       <button type="button" class="nav-tab" id="tab-path_c_zips" role="tab" aria-selected="true" data-mode="path_c_zips">
-        <span class="step-num">1</span> Market Heat &amp; Pricing
+        <span class="step-num">1</span> Market
       </button>
       <button type="button" class="nav-tab" id="tab-path_a" role="tab" aria-selected="false" data-mode="path_a">
-        <span class="step-num">2</span> Home Valuations
+        <span class="step-num">2</span> 3D Homes
       </button>
       <button type="button" class="nav-tab" id="tab-path_c_arcs" role="tab" aria-selected="false" data-mode="path_c_arcs">
-        <span class="step-num">3</span> Buyer &amp; Job Flows
+        <span class="step-num">3</span> Flows
       </button>
       <button type="button" class="nav-tab" id="tab-path_eb" role="tab" aria-selected="false" data-mode="path_eb">
-        <span class="step-num">4</span> Growth &amp; Street Appeal
+        <span class="step-num">4</span> Growth
       </button>
       <button type="button" class="nav-tab" id="tab-analytics" role="tab" aria-selected="false" data-mode="analytics">
-        <span class="step-num">5</span> Model Proof &amp; Charts
+        <span class="step-num">5</span> Proof
       </button>
     </div>
 
     <div class="top-controls" role="toolbar" aria-label="Map controls">
-      <button id="btn-open-guide" class="pill-btn guide-btn" type="button">? How to Use</button>
-      <button id="btn-toggle-3d" class="pill-btn" type="button" aria-pressed="false" title="Toggle 3D extrusion on individual buildings and flow arcs">2D Map</button>
+      <button id="btn-open-guide" class="pill-btn guide-btn" type="button">? Guide</button>
+      <button id="btn-toggle-3d" class="pill-btn" type="button" aria-pressed="false" title="Toggle 3D extrusion on individual buildings and flow arcs">2D</button>
       <button id="btn-toggle-counties" class="pill-btn active" type="button" aria-pressed="true">Counties</button>
       <select id="basemap-select" aria-label="Map basemap style">
         <option value="voyager" selected>Voyager</option>
-        <option value="positron">Positron (Minimal)</option>
+        <option value="positron">Minimal</option>
         <option value="liberty">OpenFreeMap</option>
       </select>
-      <button id="btn-toggle-drawer" class="pill-btn" type="button" aria-pressed="false">Hide Panel</button>
+      <button id="btn-toggle-drawer" class="pill-btn" type="button" aria-pressed="false">Panel</button>
     </div>
   </header>
 
@@ -480,27 +541,30 @@
     <div id="map" role="application" aria-label="Interactive Metro Atlanta Housing Map"></div>
     <div id="tooltip" class="tooltip"></div>
 
-    <!-- Clean, Progressive-Disclosure Left Drawer -->
+    <!-- Live Viewport Stream Pill (only shown in 3D Homes tab) -->
+    <div id="viewport-pill" class="viewport-pill" hidden>
+      <span class="dot" id="vp-dot"></span>
+      <span id="vp-text">Streaming 3D buildings in view...</span>
+      <button id="vp-zoom-btn" type="button" hidden>Zoom to Homes</button>
+    </div>
+
+    <!-- Clean Left Inspector Drawer -->
     <aside class="drawer" id="map-drawer">
       <div class="drawer-body scroller">
-        <!-- Smart Plain-English Search -->
+        <!-- Compact Plain-English Search -->
         <div class="card">
-          <div class="card-head">
-            <h2>Ask the Atlanta Market (Live SQL)</h2>
-            <span class="badge-tag">DuckDB</span>
-          </div>
           <div class="query-row">
-            <input id="nl-input" type="text" placeholder="Try: buyer leverage under 500k" aria-label="Ask a question about Metro Atlanta housing" />
-            <button id="nl-run" type="button">Search</button>
+            <input id="nl-input" type="text" placeholder="Ask market (e.g. buyer leverage under 500k)" aria-label="Ask a question about Metro Atlanta housing" />
+            <button id="nl-run" type="button">Go</button>
           </div>
           <div class="chip-row">
-            <button class="chip" type="button" data-q="highest price cuts buyer leverage">Where buyers have leverage</button>
-            <button class="chip" type="button" data-q="hot demand suburbs under 500k">Hot suburbs &lt;$500k</button>
+            <button class="chip" type="button" data-q="highest price cuts buyer leverage">Buyer leverage</button>
+            <button class="chip" type="button" data-q="hot demand suburbs under 500k">Hot &lt;$500k</button>
             <button class="chip" type="button" data-q="undervalued 3d parcels under 800k">Undervalued homes</button>
           </div>
-          <p id="nl-summary" style="font-size:0.74rem;color:var(--emerald);font-weight:600;margin-top:6px;"></p>
+          <p id="nl-summary" style="font-size:0.72rem;color:var(--emerald);font-weight:600;margin-top:5px;"></p>
           <details class="disclosure" id="sql-disclosure" hidden>
-            <summary>Show executed DuckDB SQL</summary>
+            <summary>Executed DuckDB SQL</summary>
             <div class="disclosure-inner">
               <pre id="nl-sql" class="sql-box scroller"></pre>
             </div>
@@ -509,29 +573,29 @@
 
         <!-- TAB 1 PANEL: Market Heat & Pricing -->
         <div role="tabpanel" aria-labelledby="tab-path_c_zips" id="panel-path_c_zips">
-          <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:9px;">
             <div class="callout">
-              <strong>What you're seeing: Metro Atlanta by ZIP Code (2D Flat Map)</strong>
-              Green ZIPs are hot seller markets; red ZIPs have widespread price cuts where buyers have leverage. <strong>Click any ZIP</strong> to view its 10-year trend and simulate the optimal asking price.
+              <strong>Metro Atlanta ZIP Heat Map (Oct 2026)</strong>
+              Green = hot seller market; red = price cuts &amp; buyer leverage. Click any ZIP to inspect its 10-year trend &amp; optimal ask price.
             </div>
 
             <div class="card">
               <div class="card-head">
                 <h2>Color Map By</h2>
-                <span class="badge-tag">Oct 2026</span>
+                <span class="badge-tag">201 ZIPs</span>
               </div>
               <div class="seg-bar" id="zip-metric-bar">
                 <button type="button" class="seg-btn active" data-metric="hotness">Buyer Hotness</button>
                 <button type="button" class="seg-btn" data-metric="price_cut">Price Cuts %</button>
                 <button type="button" class="seg-btn" data-metric="dom">Days to Sell</button>
-                <button type="button" class="seg-btn" data-metric="zhvi">Typical Home Value</button>
+                <button type="button" class="seg-btn" data-metric="zhvi">Home Value</button>
               </div>
             </div>
 
             <div class="card">
               <div class="card-head">
-                <h2 id="zip-card-title">Roswell · ZIP 30075</h2>
-                <span class="badge-tag" id="zip-card-badge">Fulton County</span>
+                <h2 id="zip-card-title">Roswell · 30075</h2>
+                <span class="badge-tag" id="zip-card-badge">Fulton</span>
               </div>
               <div class="kpi-grid" id="zip-kpis"></div>
               <div class="chart-wrap">
@@ -542,11 +606,8 @@
             <div class="card">
               <div class="card-head">
                 <h2>Seller Ask-Price Optimizer</h2>
-                <span class="badge-tag">Interactive</span>
+                <span class="badge-tag">Live Model</span>
               </div>
-              <p style="font-size:0.74rem;color:var(--text-muted);margin-bottom:8px;">
-                Test how listing above or below fair value affects days on market, carrying costs, and expected net proceeds.
-              </p>
               <div class="control-row">
                 <label for="sim-zip">ZIP Code</label>
                 <input id="sim-zip" type="text" value="30075" maxlength="5" />
@@ -555,17 +616,17 @@
                 <label for="sim-fv">Home Value ($)</label>
                 <input id="sim-fv" type="number" value="550000" step="25000" min="100000" max="5000000" />
               </div>
-              <button id="sim-run" class="action-btn" type="button">Calculate Optimal Ask Price</button>
+              <button id="sim-run" class="action-btn" type="button">Calculate Best Ask Price</button>
               <div class="verdict-box" id="sim-verdict">Running simulation...</div>
-              <div class="chart-wrap" style="height:130px;">
+              <div class="chart-wrap" style="height:125px;">
                 <canvas id="sim-chart" aria-label="Expected Net Proceeds Curve"></canvas>
               </div>
               <details class="disclosure">
-                <summary>View full ask-price breakdown table (-4% to +8%)</summary>
+                <summary>Ask-price breakdown table (-4% to +8%)</summary>
                 <div class="disclosure-inner">
                   <div tabindex="0" role="region" aria-labelledby="sim-caption" class="table-wrapper scroller">
                     <table>
-                      <caption id="sim-caption">Expected Days to Sell, 30d sale odds, price-cut risk &amp; Net Proceeds</caption>
+                      <caption id="sim-caption">Days to sell, 30d sale odds, cut risk &amp; expected net</caption>
                       <thead>
                         <tr><th>Ask</th><th>DOM</th><th>30d%</th><th>Cut%</th><th>Exp Net</th></tr>
                       </thead>
@@ -578,100 +639,122 @@
           </div>
         </div>
 
-        <!-- TAB 2 PANEL: Individual Home Valuations -->
+        <!-- TAB 2 PANEL: 5-County Viewport-Streamed 3D Homes & Valuations -->
         <div role="tabpanel" aria-labelledby="tab-path_a" id="panel-path_a" hidden>
-          <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:9px;">
             <div class="callout">
-              <strong>What you're seeing: 15,000 Real Home Footprints (Sandy Springs)</strong>
-              Each polygon is an actual Overture building footprint (1:1 real height in 3D). <strong>Click any house</strong> to inspect its AI valuation, 90% confidence price range, and blue-green lines to its 5 most similar comparable homes.
+              <strong>5-County 3D Buildings (Viewport Streamed)</strong>
+              Pan anywhere across Fulton, DeKalb, Cobb, Gwinnett &amp; Forsyth—only buildings in view load. Sandy Springs homes include AI parcel valuations &amp; 5 comparable arcs.
             </div>
 
             <div class="card">
               <div class="card-head">
-                <h2>Color Homes By</h2>
+                <h2>Jump to Neighborhood</h2>
+                <span class="badge-tag brand">5 Counties</span>
+              </div>
+              <div class="chip-row" style="margin-top:0;" id="suburb-jump-bar">
+                <button class="chip featured" type="button" data-lon="-84.376" data-lat="33.930" data-zoom="15.8">Sandy Springs (AI)</button>
+                <button class="chip" type="button" data-lon="-84.380" data-lat="33.848" data-zoom="15.4">Buckhead</button>
+                <button class="chip" type="button" data-lon="-84.294" data-lat="34.075" data-zoom="15.4">Alpharetta</button>
+                <button class="chip" type="button" data-lon="-84.361" data-lat="34.023" data-zoom="15.4">Roswell</button>
+                <button class="chip" type="button" data-lon="-84.296" data-lat="33.775" data-zoom="15.4">Decatur</button>
+                <button class="chip" type="button" data-lon="-84.426" data-lat="34.006" data-zoom="15.4">East Cobb</button>
+                <button class="chip" type="button" data-lon="-84.071" data-lat="34.051" data-zoom="15.4">Suwanee</button>
+                <button class="chip" type="button" data-lon="-84.140" data-lat="34.207" data-zoom="15.4">Cumming</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Color Buildings By</h2>
                 <span class="badge-tag">13.56% MAPE</span>
               </div>
               <div class="seg-bar" id="bldg-metric-bar">
-                <button type="button" class="seg-btn active" data-bmetric="mispricing">Model vs. Appraisal</button>
-                <button type="button" class="seg-btn" data-bmetric="fair_value">Estimated Value</button>
-                <button type="button" class="seg-btn" data-bmetric="uncertainty">Price Uncertainty</button>
+                <button type="button" class="seg-btn active" data-bmetric="mispricing">AI Value / Market</button>
+                <button type="button" class="seg-btn" data-bmetric="fair_value">Home Value</button>
+                <button type="button" class="seg-btn" data-bmetric="uncertainty">Price Confidence</button>
                 <button type="button" class="seg-btn" data-bmetric="height">Building Height</button>
               </div>
             </div>
 
             <div class="card">
               <div class="card-head">
-                <h2 id="bldg-card-title">Selected Home</h2>
-                <span class="badge-tag" id="bldg-height-badge">Overture Measured</span>
+                <h2 id="bldg-card-title">Selected Building</h2>
+                <span class="badge-tag" id="bldg-tier-badge">AI Valuation</span>
               </div>
               <div class="kpi-grid" id="bldg-kpis"></div>
 
-              <div class="interval-box">
-                <div style="display:flex;justify-content:space-between;font-size:0.71rem;font-weight:700;color:var(--text-secondary);">
-                  <span>90% Confidence Price Range</span>
-                  <span id="swcp-span-label"></span>
-                </div>
-                <div class="interval-track">
-                  <div class="interval-band" id="swcp-band" style="left:15%;right:15%;"></div>
-                  <div class="interval-dot" id="swcp-dot-pred" style="left:50%;background:#0284c7;" title="AI Estimated Value"></div>
-                  <div class="interval-dot" id="swcp-dot-actual" style="left:55%;background:#0f172a;" title="County Tax Appraisal"></div>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--text-muted);">
-                  <span id="swcp-low-lbl"></span>
-                  <span>● Blue: AI Value · ● Dark: Tax Appraisal</span>
-                  <span id="swcp-high-lbl"></span>
-                </div>
-              </div>
-
-              <details class="disclosure" open>
-                <summary>Top-5 AI comparable homes (shown as lines on map)</summary>
-                <div class="disclosure-inner">
-                  <div tabindex="0" role="region" aria-labelledby="comps-caption" class="table-wrapper scroller">
-                    <table>
-                      <caption id="comps-caption">5 comparable homes weighted by our PyTorch Graph Transformer</caption>
-                      <thead>
-                        <tr><th>Comp ID</th><th>Weight</th><th>Value</th></tr>
-                      </thead>
-                      <tbody id="comps-tbody"></tbody>
-                    </table>
+              <!-- Only shown for Sandy Springs Tier-1 AI Valued Homes -->
+              <div id="gnn-details-block">
+                <div class="interval-box">
+                  <div style="display:flex;justify-content:space-between;font-size:0.70rem;font-weight:700;color:var(--text-secondary);">
+                    <span>90% Confidence Range</span>
+                    <span id="swcp-span-label"></span>
+                  </div>
+                  <div class="interval-track">
+                    <div class="interval-band" id="swcp-band" style="left:15%;right:15%;"></div>
+                    <div class="interval-dot" id="swcp-dot-pred" style="left:50%;background:#0284c7;" title="AI Estimate"></div>
+                    <div class="interval-dot" id="swcp-dot-actual" style="left:55%;background:#0f172a;" title="Tax Appraisal"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.66rem;color:var(--text-muted);">
+                    <span id="swcp-low-lbl"></span>
+                    <span>● AI · ● Tax</span>
+                    <span id="swcp-high-lbl"></span>
                   </div>
                 </div>
-              </details>
+
+                <details class="disclosure" open>
+                  <summary>5 Comparable Homes (click row to inspect)</summary>
+                  <div class="disclosure-inner">
+                    <div tabindex="0" role="region" aria-labelledby="comps-caption" class="table-wrapper scroller">
+                      <table>
+                        <caption id="comps-caption">Highlighted in green on the map · PyTorch Graph Transformer weights</caption>
+                        <thead>
+                          <tr><th>Parcel</th><th>Weight</th><th>Value</th></tr>
+                        </thead>
+                        <tbody id="comps-tbody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- Shown for Tier-2 Metro-Wide 3D Buildings outside Sandy Springs CAMA -->
+              <div id="metro-context-note" hidden style="margin-top:8px;padding:7px 9px;border-radius:8px;background:#f8fafc;border:1px solid var(--border-soft);font-size:0.72rem;color:var(--text-secondary);line-height:1.4;">
+                Real Overture 3D footprint paired with live Oct 2026 ZIP market context. Click <strong>Sandy Springs (AI)</strong> above to inspect parcel-level PyTorch GNN valuations and comparable-sale arcs.
+              </div>
             </div>
           </div>
         </div>
 
         <!-- TAB 3 PANEL: Buyer & Job Flows -->
         <div role="tabpanel" aria-labelledby="tab-path_c_arcs" id="panel-path_c_arcs" hidden>
-          <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:9px;">
             <div class="callout">
-              <strong>What you're seeing: Where Buyers &amp; Jobs Move</strong>
-              Toggle between out-of-state household income migrating into Metro Atlanta (IRS tax returns) and daily cross-county morning commutes (Census LODES).
+              <strong>Where Buyers &amp; Jobs Move</strong>
+              Switch between daily cross-county morning commutes (Census LODES) and out-of-state household wealth inflows (IRS).
             </div>
 
             <div class="card">
               <div class="card-head">
-                <h2>Choose Flow Dataset</h2>
+                <h2>Flow Dataset</h2>
                 <span class="badge-tag">Interactive</span>
               </div>
               <div class="seg-bar" id="flow-metric-bar">
-                <button type="button" class="seg-btn active" data-flow="lodes">Metro Job Commutes</button>
+                <button type="button" class="seg-btn active" data-flow="lodes">Metro Commutes</button>
                 <button type="button" class="seg-btn" data-flow="irs">Out-of-State Wealth</button>
               </div>
-              <p id="flow-note" style="font-size:0.75rem;color:var(--text-secondary);margin-top:8px;line-height:1.42;"></p>
+              <p id="flow-note" style="font-size:0.73rem;color:var(--text-secondary);margin-top:7px;line-height:1.4;"></p>
             </div>
 
             <div class="card">
               <div class="card-head">
-                <h2>2024 Mortgage Credit by County</h2>
+                <h2>2024 Mortgage Credit (5 Counties)</h2>
                 <span class="badge-tag">836K Loans</span>
               </div>
-              <p style="font-size:0.73rem;color:var(--text-muted);margin-bottom:4px;">
-                Gwinnett leads investor buying (12.7%); Forsyth has the highest median home value ($655k) and buyer income ($168k).
-              </p>
               <div tabindex="0" role="region" aria-labelledby="hmda-caption" class="table-wrapper scroller">
                 <table>
-                  <caption id="hmda-caption">2024 home-purchase loans, denial rates, investor share &amp; median value</caption>
+                  <caption id="hmda-caption">Home-purchase loans, denial %, investor % &amp; median value</caption>
                   <thead>
                     <tr><th>County</th><th>Loans</th><th>Deny%</th><th>Inv%</th><th>Med Val</th></tr>
                   </thead>
@@ -684,42 +767,39 @@
 
         <!-- TAB 4 PANEL: Growth & Street Appeal -->
         <div role="tabpanel" aria-labelledby="tab-path_eb" id="panel-path_eb" hidden>
-          <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:9px;">
             <div class="callout">
-              <strong>What you're seeing: Development Catalysts &amp; Street Photos</strong>
-              Hover over dots to inspect Johns Creek rezoning cases (amber), Gwinnett land-development permits (red), and Mapillary street-level photo samples (green).
+              <strong>Development Catalysts &amp; Street Photos</strong>
+              Hover dots to inspect Johns Creek rezoning cases (amber), Gwinnett land permits (red), and Mapillary streetscape samples (green).
             </div>
 
             <div class="card">
               <div class="card-head">
-                <h2>Visible Map Layers</h2>
+                <h2>Map Layers</h2>
                 <span class="badge-tag">Toggle</span>
               </div>
               <label class="check-label" for="chk-rezoning">
                 <input class="brand-check" id="chk-rezoning" type="checkbox" checked />
-                <span>Johns Creek Rezoning Cases (1,045 · Amber)</span>
+                <span>Johns Creek Rezoning (1,045 · Amber)</span>
               </label>
               <label class="check-label" for="chk-permits">
                 <input class="brand-check" id="chk-permits" type="checkbox" checked />
-                <span>Gwinnett Land Dev Permits (413 · Rose)</span>
+                <span>Gwinnett Permits (413 · Rose)</span>
               </label>
               <label class="check-label" for="chk-street">
                 <input class="brand-check" id="chk-street" type="checkbox" checked />
-                <span>Mapillary Streetscape Photos (549 · Green)</span>
+                <span>Mapillary Street Photos (549 · Green)</span>
               </label>
             </div>
 
             <div class="card">
               <div class="card-head">
-                <h2>Street Canopy Pilot (Green View Index)</h2>
-                <span class="badge-tag">5 Suburbs</span>
+                <h2>Street Tree Canopy (GVI%)</h2>
+                <span class="badge-tag">60 Photos</span>
               </div>
-              <p style="font-size:0.73rem;color:var(--text-muted);margin-bottom:4px;">
-                Scored from 60 real Mapillary street photos. Notice seasonal leaf-off capture bias in winter East Cobb / Cumming drives vs. summer Alpharetta / Suwanee drives.
-              </p>
               <div tabindex="0" role="region" aria-labelledby="gvi-caption" class="table-wrapper scroller">
                 <table>
-                  <caption id="gvi-caption">Suburban street tree canopy (GVI%), open sky &amp; typical home value</caption>
+                  <caption id="gvi-caption">MIT Treepedia Green View Index, open sky &amp; typical home value</caption>
                   <thead>
                     <tr><th>Suburb</th><th>Canopy</th><th>Sky</th><th>ZHVI</th></tr>
                   </thead>
@@ -729,10 +809,10 @@
             </div>
 
             <details class="disclosure">
-              <summary>Rezoning event-study takeaway (Honest Null)</summary>
+              <summary>Rezoning event-study result (Honest Null)</summary>
               <div class="disclosure-inner">
-                <p style="font-size:0.74rem;color:var(--text-secondary);line-height:1.45;">
-                  Comparing annual Johns Creek rezoning counts against next-year ZIP price growth relative to matched North Atlanta control suburbs yielded <strong>r = −0.254 (p = 0.544)</strong>, showing rezoning impacts are hyper-local (&lt;0.5 mi) rather than ZIP-wide.
+                <p style="font-size:0.73rem;color:var(--text-secondary);line-height:1.42;">
+                  Annual Johns Creek rezoning counts vs. next-year ZIP growth relative to matched North Atlanta control suburbs yielded <strong>r = −0.254 (p = 0.544)</strong>, showing rezoning impacts are hyper-local (&lt;0.5 mi) rather than ZIP-wide.
                 </p>
               </div>
             </details>
@@ -747,9 +827,7 @@
         <div class="hero-banner">
           <div>
             <h2>Model Proof &amp; 10-Year Metro Atlanta Market Evidence</h2>
-            <p>
-              Every metric below is verified on real Metro Atlanta public data using strict out-of-sample splits—no lookahead leakage.
-            </p>
+            <p>Every metric below is verified on real Metro Atlanta public data using strict out-of-sample splits—zero lookahead leakage.</p>
           </div>
           <div class="hero-stats">
             <div class="hero-stat"><div class="num">13.56%</div><div class="lbl">Hybrid GNN+LGBM Error</div></div>
@@ -795,7 +873,7 @@
     </section>
 
     <div class="legend" id="legend-box">
-      <strong id="legend-title">Metro Atlanta ZIP Buyer Hotness (Oct 2026)</strong>
+      <strong id="legend-title">Buyer Hotness (Oct 2026)</strong>
       <div class="legend-bar" id="legend-bar"></div>
       <div class="legend-labels">
         <span id="legend-low">Cool (20)</span>
@@ -805,7 +883,7 @@
     </div>
   </main>
 
-  <!-- Native Light-Dismiss Interactive Guide Modal (per modern-web-guidance light-dismiss-a-dialog) -->
+  <!-- Native Light-Dismiss Interactive Guide Modal -->
   <dialog id="guide-dialog" closedby="any" aria-labelledby="guide-title">
     <div class="dialog-head">
       <h2 id="guide-title">How to Use the Metro Atlanta Housing Atlas</h2>
@@ -814,54 +892,54 @@
       </form>
     </div>
     <div class="dialog-body scroller">
-      <p style="font-size:0.81rem;color:var(--text-secondary);line-height:1.45;">
-        This interactive platform combines public parcel records, 3D building footprints, 836,000 mortgage loans, and 10 years of listing data to answer practical buying, selling, and valuation questions across Metro Atlanta's suburbs.
+      <p style="font-size:0.79rem;color:var(--text-secondary);line-height:1.45;">
+        Explore real Metro Atlanta public housing data across 5 counties, 201 ZIP codes, 1.15M viewport-streamed 3D building footprints, and 836,000 mortgage loans.
       </p>
 
-      <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;flex-direction:column;gap:7px;">
         <div class="guide-step">
           <div class="num">1</div>
           <div>
-            <h3>Market Heat &amp; Pricing (ZIP Map)</h3>
-            <p>Start in clean 2D to spot hot seller suburbs (green) vs. price-cut buyer-leverage pockets (red). Click any ZIP to load its 10-year trend and run the Seller Ask-Price Optimizer.</p>
+            <h3>Market Heat &amp; Pricing</h3>
+            <p>Spot hot seller markets (green) vs. buyer-leverage price-cut pockets (red) in flat 2D. Click any ZIP for its 10-year trend and Seller Ask-Price Optimizer.</p>
           </div>
         </div>
         <div class="guide-step">
           <div class="num">2</div>
           <div>
-            <h3>Home Valuations (15,000 Real Building Footprints)</h3>
-            <p>Zooms straight into Sandy Springs neighborhoods. Click any individual house to compare our AI estimate vs. county appraisal, check the 90% price range, and see the 5 comparable homes driving the price. Toggle <strong>3D Buildings</strong> at top-right for true 1:1 heights.</p>
+            <h3>3D Homes (All 5 Counties · Viewport Streamed)</h3>
+            <p>Pan to any neighborhood across Fulton, DeKalb, Cobb, Gwinnett, or Forsyth—only buildings currently on screen load so it stays buttery smooth. Click any Sandy Springs home to see its AI value, 90% price range, and 5 green-highlighted comparable homes.</p>
           </div>
         </div>
         <div class="guide-step">
           <div class="num">3</div>
           <div>
-            <h3>Buyer &amp; Job Flows · Growth &amp; Street · Model Proof</h3>
-            <p>Explore where commuters and out-of-state buyers come from, inspect Johns Creek rezoning cases &amp; Mapillary street canopy scores, or open Tab 5 for all 6 live research benchmark charts.</p>
+            <h3>Flows · Growth · Model Proof</h3>
+            <p>Inspect morning commutes &amp; out-of-state buyer inflows, county rezoning &amp; street tree canopy scores, or open Tab 5 for all 6 verified model benchmark charts.</p>
           </div>
         </div>
       </div>
 
       <div>
-        <h3 style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px;">
-          Try a 1-Click Guided Example
+        <h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:7px;">
+          1-Click Guided Examples
         </h3>
         <div class="tour-grid">
           <button type="button" class="tour-btn" data-tour="kennesaw">
             <strong>Buyer Leverage in Kennesaw (30152)</strong>
-            <span>See 52.6% price-cut share and why overpricing by +4% costs a seller $4,500.</span>
+            <span>52.6% price-cut share—see why overpricing by +4% costs $4,500.</span>
           </button>
           <button type="button" class="tour-btn" data-tour="home3d">
-            <strong>Inspect a 3D Home + Its 5 Comps</strong>
-            <span>Zoom right onto Sandy Springs building footprints in 1:1 3D with PyTorch comp arcs.</span>
+            <strong>Inspect a 3D Home + 5 Highlighted Comps</strong>
+            <span>Fly into Sandy Springs in 1:1 3D with roof-anchored comparable arcs.</span>
           </button>
-          <button type="button" class="tour-btn" data-tour="commutes">
-            <strong>Forsyth's High-Wage Commute Flow</strong>
-            <span>View 39,000 Forsyth commuters (79.6% high-wage) flowing into Fulton County.</span>
+          <button type="button" class="tour-btn" data-tour="alpharetta3d">
+            <strong>Stream 3D Buildings in Alpharetta</strong>
+            <span>Jump outside Sandy Springs to see fast viewport streaming across North Fulton.</span>
           </button>
           <button type="button" class="tour-btn" data-tour="charts">
             <strong>10-Year Market &amp; Model Proof</strong>
-            <span>Jump straight to the 6 live benchmark charts (PyTorch GNN, Survival, Spatial CQR).</span>
+            <span>Open all 6 verified benchmark charts (PyTorch GNN, Survival, Spatial CQR).</span>
           </button>
         </div>
       </div>
@@ -870,6 +948,19 @@
 
   <script>
     const fmtUSD = (v) => v == null ? "N/A" : "$" + Math.round(v).toLocaleString("en-US");
+    const fmtShortUSD = (v) => {
+      if (v == null) return "N/A";
+      if (v >= 1000000) return "$" + (v / 1000000).toFixed(2) + "M";
+      return "$" + Math.round(v / 1000).toLocaleString("en-US") + "k";
+    };
+    const sqmToSqft = (sqm) => sqm == null ? "—" : Math.round(sqm * 10.7639).toLocaleString("en-US") + " sq ft";
+    const niceBldgType = (t, nUnits) => {
+      if (nUnits > 1 || t === "apartments") return "Multi-Family";
+      if (t === "house" || t === "detached" || t === "residential") return "Single-Family";
+      if (t === "terrace") return "Townhome";
+      if (t === "commercial" || t === "retail") return "Commercial";
+      return "Building";
+    };
 
     const BASEMAPS = {
       voyager: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
@@ -887,18 +978,25 @@
 
     const state = {
       mode: "path_c_zips",
-      is3D: false,               // Clean flat 2D default so maps are immediately legible!
+      is3D: false,
       showCounties: true,
       zipMetric: "hotness",
       bldgMetric: "mispricing",
-      flowType: "lodes",         // Start flows zoomed nicely on Metro Atlanta commutes
+      flowType: "lodes",
       showRezoning: true,
       showPermits: true,
       showStreet: true,
       countiesGeo: null,
       zipsGeo: null,
-      buildingsGeo: null,
+      // Viewport-streamed 3D buildings state
+      viewportGeo: { type: "FeatureCollection", features: [] },
+      bldgByOid: new Map(),
+      lastFetchedBounds: null,
+      lastFetchedLod: null,
+      viewportAbort: null,
+      viewportTimer: null,
       selectedBuilding: null,
+      pendingSelectOid: null,
       irsArcs: [],
       lodesArcs: [],
       catalysts: [],
@@ -909,10 +1007,9 @@
       analyticsRendered: false,
     };
 
-    // Tighter neighborhood zoom on Tab 2 so individual building footprints are immediately legible!
     const VIEWS = {
       path_c_zips: { center: [-84.33, 33.91], zoom: 9.5, pitch: 0, bearing: 0 },
-      path_a: { center: [-84.376, 33.930], zoom: 15.6, pitch: 48, bearing: -14 },
+      path_a: { center: [-84.376, 33.930], zoom: 15.8, pitch: 48, bearing: -14 },
       path_c_lodes: { center: [-84.30, 33.94], zoom: 9.8, pitch: 0, bearing: 0 },
       path_c_irs: { center: [-94.5, 37.2], zoom: 3.7, pitch: 35, bearing: 4 },
       path_eb: { center: [-84.19, 34.02], zoom: 10.6, pitch: 0, bearing: 0 },
@@ -947,18 +1044,47 @@
     }
     document.getElementById("btn-open-guide").addEventListener("click", () => guideDialog.showModal());
 
-    function showTooltip(x, y, lines) {
+    // Clean, structured, zero-clutter hover card (safe DOM textContent only)
+    function showCardTooltip(x, y, spec) {
       const tip = document.getElementById("tooltip");
-      if (!lines || !lines.length) { tip.style.display = "none"; return; }
+      if (!spec) { tip.style.display = "none"; return; }
       tip.replaceChildren();
-      lines.forEach((line, idx) => {
-        const div = document.createElement("div");
-        if (idx === 0) div.style.fontWeight = "700";
-        div.textContent = line;
-        tip.appendChild(div);
-      });
-      tip.style.left = Math.min(window.innerWidth - 300, x + 14) + "px";
-      tip.style.top = Math.min(window.innerHeight - 130, y + 14) + "px";
+
+      const head = document.createElement("div");
+      head.className = "tip-head";
+      const titleEl = document.createElement("span");
+      titleEl.className = "tip-title";
+      titleEl.textContent = spec.title;
+      head.appendChild(titleEl);
+
+      if (spec.badge) {
+        const badgeEl = document.createElement("span");
+        badgeEl.className = `tip-pill ${spec.badgeTone || ""}`;
+        badgeEl.textContent = spec.badge;
+        head.appendChild(badgeEl);
+      }
+      tip.appendChild(head);
+
+      for (const [k, v] of (spec.rows || [])) {
+        const row = document.createElement("div");
+        row.className = "tip-row";
+        const kEl = document.createElement("span");
+        kEl.className = "tip-k"; kEl.textContent = k;
+        const vEl = document.createElement("span");
+        vEl.className = "tip-v"; vEl.textContent = v;
+        row.append(kEl, vEl);
+        tip.appendChild(row);
+      }
+
+      if (spec.foot) {
+        const foot = document.createElement("div");
+        foot.className = "tip-foot";
+        foot.textContent = spec.foot;
+        tip.appendChild(foot);
+      }
+
+      tip.style.left = Math.min(window.innerWidth - 280, x + 14) + "px";
+      tip.style.top = Math.min(window.innerHeight - 155, y + 14) + "px";
       tip.style.display = "block";
     }
 
@@ -994,19 +1120,31 @@
 
     function sync3DButton() {
       const btn = document.getElementById("btn-toggle-3d");
-      btn.textContent = state.is3D ? "3D: ON" : "2D Map";
+      btn.textContent = state.is3D ? "3D: ON" : "2D";
       btn.classList.toggle("active", state.is3D);
       btn.setAttribute("aria-pressed", String(state.is3D));
     }
 
+    function setViewportPill(status, text, showZoomBtn = false) {
+      const pill = document.getElementById("viewport-pill");
+      const dot = document.getElementById("vp-dot");
+      const txt = document.getElementById("vp-text");
+      const btn = document.getElementById("vp-zoom-btn");
+      if (state.mode !== "path_a") { pill.hidden = true; return; }
+      pill.hidden = false;
+      dot.className = "dot" + (status === "loading" ? " loading" : status === "warn" ? " warn" : "");
+      txt.textContent = text;
+      btn.hidden = !showZoomBtn;
+    }
+
     function selectZipFeature(d) {
-      document.getElementById("zip-card-title").textContent = `${d.city || d.zip_code} · ZIP ${d.zip_code}`;
-      document.getElementById("zip-card-badge").textContent = d.county_name || "Metro ATL";
+      document.getElementById("zip-card-title").textContent = `${d.city || d.zip_code} · ${d.zip_code}`;
+      document.getElementById("zip-card-badge").textContent = (d.county_name || "Metro ATL").replace(" County", "");
       fillKPIs("zip-kpis", [
         ["Buyer Hotness", String(d.hotness_score ?? "N/A")],
-        ["Listings Cutting Price", d.price_cut_pct != null ? `${d.price_cut_pct}%` : "N/A"],
-        ["Days to Sell (DOM)", d.median_dom != null ? `${d.median_dom} days` : "N/A"],
-        ["Typical Home Value", fmtUSD(d.latest_zhvi)],
+        ["Price Cuts", d.price_cut_pct != null ? `${d.price_cut_pct}%` : "N/A"],
+        ["Days to Sell", d.median_dom != null ? `${d.median_dom}d` : "N/A"],
+        ["Typical Value", fmtShortUSD(d.latest_zhvi)],
       ]);
       document.getElementById("sim-zip").value = d.zip_code;
       if (d.latest_zhvi) document.getElementById("sim-fv").value = Math.round(d.latest_zhvi);
@@ -1014,157 +1152,376 @@
       runSimulator();
     }
 
-    function selectBuilding(d) {
+    function selectBuilding(d, ensureCompsLoaded = false) {
       state.selectedBuilding = d;
-      const hSrc = d.height_measured ? "Overture Measured" : "Est. Default 6m";
-      document.getElementById("bldg-card-title").textContent = `Parcel ${d.id} · ZIP ${d.zip}`;
-      document.getElementById("bldg-height-badge").textContent = `${d.height_m}m · ${hSrc}`;
-      const bandWidth = Math.max(0, (d.swcp_upper || 0) - (d.swcp_lower || 0));
+      const typeLabel = niceBldgType(d.bldg_type, d.n_units);
+      const zipTag = d.zip ? ` · ${d.zip}` : "";
+      document.getElementById("bldg-card-title").textContent = `${typeLabel}${zipTag}`;
 
-      fillKPIs("bldg-kpis", [
-        ["AI Estimated Value", fmtUSD(d.hybrid_pred)],
-        ["County Tax Appraisal", fmtUSD(d.actual)],
-        ["Footprint Area", `${d.footprint_sqm} m²`],
-        ["AI vs. Appraisal", `${d.mispricing_pct > 0 ? "+" : ""}${d.mispricing_pct}%`],
-      ]);
+      const tierBadge = document.getElementById("bldg-tier-badge");
+      const gnnBlock = document.getElementById("gnn-details-block");
+      const metroNote = document.getElementById("metro-context-note");
 
-      const lo = Math.min(d.swcp_lower, d.actual * 0.85);
-      const hi = Math.max(d.swcp_upper, d.actual * 1.15);
-      const span = Math.max(1, hi - lo);
-      const pct = (val) => Math.max(2, Math.min(98, ((val - lo) / span) * 100));
-      document.getElementById("swcp-band").style.left = pct(d.swcp_lower) + "%";
-      document.getElementById("swcp-band").style.right = (100 - pct(d.swcp_upper)) + "%";
-      document.getElementById("swcp-dot-pred").style.left = pct(d.hybrid_pred) + "%";
-      document.getElementById("swcp-dot-actual").style.left = pct(d.actual) + "%";
-      document.getElementById("swcp-low-lbl").textContent = fmtUSD(d.swcp_lower);
-      document.getElementById("swcp-high-lbl").textContent = fmtUSD(d.swcp_upper);
-      document.getElementById("swcp-span-label").textContent = `±${fmtUSD(bandWidth / 2)}`;
+      if (d.has_gnn) {
+        tierBadge.textContent = `${d.height_m}m · AI Valuation`;
+        tierBadge.className = "badge-tag";
+        gnnBlock.hidden = false;
+        metroNote.hidden = true;
 
-      const tbody = document.getElementById("comps-tbody");
-      tbody.replaceChildren();
-      for (const c of (d.comps || [])) {
-        const tr = document.createElement("tr");
-        const th = document.createElement("th"); th.scope = "row"; th.textContent = c.comp_id;
-        const tdW = document.createElement("td"); tdW.dataset.label = "Weight"; tdW.textContent = `${(c.weight * 100).toFixed(1)}%`;
-        const tdV = document.createElement("td"); tdV.dataset.label = "Value"; tdV.textContent = fmtUSD(c.value);
-        tr.append(th, tdW, tdV);
-        tbody.appendChild(tr);
+        const bandWidth = Math.max(0, (d.swcp_upper || 0) - (d.swcp_lower || 0));
+        fillKPIs("bldg-kpis", [
+          ["AI Estimate", fmtUSD(d.hybrid_pred)],
+          ["Tax Appraisal", fmtUSD(d.actual)],
+          ["Footprint", sqmToSqft(d.footprint_sqm)],
+          ["AI vs. Tax", `${d.mispricing_pct > 0 ? "+" : ""}${d.mispricing_pct}%`],
+        ]);
+
+        const lo = Math.min(d.swcp_lower, d.actual * 0.85);
+        const hi = Math.max(d.swcp_upper, d.actual * 1.15);
+        const span = Math.max(1, hi - lo);
+        const pct = (val) => Math.max(2, Math.min(98, ((val - lo) / span) * 100));
+        document.getElementById("swcp-band").style.left = pct(d.swcp_lower) + "%";
+        document.getElementById("swcp-band").style.right = (100 - pct(d.swcp_upper)) + "%";
+        document.getElementById("swcp-dot-pred").style.left = pct(d.hybrid_pred) + "%";
+        document.getElementById("swcp-dot-actual").style.left = pct(d.actual) + "%";
+        document.getElementById("swcp-low-lbl").textContent = fmtShortUSD(d.swcp_lower);
+        document.getElementById("swcp-high-lbl").textContent = fmtShortUSD(d.swcp_upper);
+        document.getElementById("swcp-span-label").textContent = `±${fmtShortUSD(bandWidth / 2)}`;
+
+        const tbody = document.getElementById("comps-tbody");
+        tbody.replaceChildren();
+        for (const c of (d.comps || [])) {
+          const tr = document.createElement("tr");
+          tr.className = "comp-row";
+          tr.title = "Click to fly to and inspect this comparable home";
+          const th = document.createElement("th"); th.scope = "row"; th.textContent = c.comp_id;
+          const tdW = document.createElement("td"); tdW.dataset.label = "Weight"; tdW.textContent = `${(c.weight * 100).toFixed(1)}%`;
+          const tdV = document.createElement("td"); tdV.dataset.label = "Value"; tdV.textContent = fmtShortUSD(c.value);
+          tr.append(th, tdW, tdV);
+          tr.addEventListener("click", () => {
+            const targetFeat = state.bldgByOid.get(c.comp_overture_id);
+            if (targetFeat) {
+              selectBuilding(targetFeat.properties, true);
+              map.easeTo({ center: [c.lon, c.lat], zoom: Math.max(map.getZoom(), 15.8), duration: 550 });
+            } else {
+              state.pendingSelectOid = c.comp_overture_id;
+              map.flyTo({ center: [c.lon, c.lat], zoom: 16.0, duration: 650 });
+            }
+          });
+          tbody.appendChild(tr);
+        }
+
+        // If any of the 5 comp buildings aren't in our current viewport cache yet, fetch them immediately!
+        const missingAnyComp = (d.comps || []).some((c) => c.comp_overture_id && !state.bldgByOid.has(c.comp_overture_id));
+        if (ensureCompsLoaded && missingAnyComp) {
+          fetchViewportBuildings(true);
+        }
+      } else {
+        tierBadge.textContent = `${d.height_m}m · ${d.county || "Metro ATL"}`;
+        tierBadge.className = "badge-tag neutral";
+        gnnBlock.hidden = true;
+        metroNote.hidden = false;
+
+        fillKPIs("bldg-kpis", [
+          ["ZIP Typical Value", fmtShortUSD(d.zip_zhvi)],
+          ["Footprint", sqmToSqft(d.footprint_sqm)],
+          ["ZIP Hotness", d.zip_hotness != null ? String(d.zip_hotness) : "—"],
+          ["ZIP Price Cuts", d.zip_price_cut_pct != null ? `${d.zip_price_cut_pct}%` : "—"],
+        ]);
       }
+
       renderLayers();
+    }
+
+    // Ultra-fast Viewport-Only 3D Building Streamer (with +25% buffer cache & AbortController)
+    async function fetchViewportBuildings(force = false) {
+      if (state.mode !== "path_a") return;
+      const zoom = map.getZoom();
+      if (zoom < 13.0) {
+        if (state.viewportGeo.features.length > 0) {
+          state.viewportGeo = { type: "FeatureCollection", features: [] };
+          state.bldgByOid.clear();
+          state.lastFetchedBounds = null;
+          renderLayers();
+        }
+        setViewportPill("warn", "Zoom in to load 3D buildings (1.15M across 5 counties)", true);
+        return;
+      }
+
+      const b = map.getBounds();
+      const lod = zoom >= 14.3 ? "full" : "medium";
+      const lb = state.lastFetchedBounds;
+
+      // Skip network request if user's viewport is still completely inside our +25% buffered cache!
+      if (
+        !force && lb && state.lastFetchedLod === lod &&
+        b.getWest() >= lb.w && b.getEast() <= lb.e &&
+        b.getSouth() >= lb.s && b.getNorth() <= lb.n
+      ) {
+        return;
+      }
+
+      // Cancel any stale in-flight viewport request immediately
+      if (state.viewportAbort) state.viewportAbort.abort();
+      state.viewportAbort = new AbortController();
+
+      const dx = (b.getEast() - b.getWest()) * 0.25;
+      const dy = (b.getNorth() - b.getSouth()) * 0.25;
+      const w = b.getWest() - dx, e = b.getEast() + dx;
+      const s = b.getSouth() - dy, n = b.getNorth() + dy;
+
+      const selOid = state.pendingSelectOid || state.selectedBuilding?.overture_id || "";
+      setViewportPill("loading", "Streaming buildings in view...", false);
+      const t0 = performance.now();
+
+      try {
+        const url = `/api/path-a/buildings-viewport?west=${w.toFixed(5)}&south=${s.toFixed(5)}&east=${e.toFixed(5)}&north=${n.toFixed(5)}&zoom=${zoom.toFixed(2)}${selOid ? `&selected_oid=${encodeURIComponent(selOid)}` : ""}`;
+        const res = await fetch(url, { signal: state.viewportAbort.signal });
+        if (!res.ok) throw new Error("Viewport stream failed");
+        const gj = await res.json();
+        const ms = Math.round(performance.now() - t0);
+
+        state.viewportGeo = gj;
+        state.bldgByOid = new Map();
+        for (const f of (gj.features || [])) {
+          state.bldgByOid.set(f.properties.overture_id, f);
+        }
+        state.lastFetchedBounds = { w, s, e, n };
+        state.lastFetchedLod = lod;
+
+        if (state.pendingSelectOid && state.bldgByOid.has(state.pendingSelectOid)) {
+          const target = state.bldgByOid.get(state.pendingSelectOid).properties;
+          state.pendingSelectOid = null;
+          selectBuilding(target, false);
+        } else {
+          renderLayers();
+        }
+
+        const count = gj.meta?.returned || 0;
+        const gnnCnt = gj.meta?.gnn_count || 0;
+        const suffix = gnnCnt > 0 ? ` (${gnnCnt.toLocaleString()} AI-valued)` : " (5-County Overture 3D)";
+        setViewportPill("ok", `${count.toLocaleString()} buildings in view${suffix} · ${ms} ms`, false);
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        setViewportPill("warn", "Could not stream buildings", false);
+      }
+    }
+
+    function scheduleViewportFetch() {
+      if (state.mode !== "path_a") return;
+      clearTimeout(state.viewportTimer);
+      state.viewportTimer = setTimeout(() => fetchViewportBuildings(false), 110);
     }
 
     function renderLayers() {
       if (state.mode === "analytics") return;
       const layers = [];
 
-      // 1. TAB 1: Clean, flat 2D ZIP choropleth (never obscures basemap roads/labels!)
-      if (state.mode === "path_c_zips" && state.zipsGeo) {
+      // 1. TAB 1 (or zoomed-out Tab 2 backdrop): Flat 2D ZIP choropleth
+      const showZipsBackdrop = state.mode === "path_a" && map.getZoom() < 13.0;
+      if ((state.mode === "path_c_zips" || showZipsBackdrop) && state.zipsGeo) {
         layers.push(
           new deck.GeoJsonLayer({
             id: "path-c-zip-polygons",
             data: state.zipsGeo,
             filled: true,
             stroked: true,
-            extruded: false, // Always flat & readable for ZIP choropleths!
-            pickable: true,
+            extruded: false,
+            pickable: state.mode === "path_c_zips",
             lineWidthMinPixels: 1,
             getFillColor: (f) => {
               const p = f.properties;
-              const a = 145;
+              const a = showZipsBackdrop ? 70 : 145;
               if (state.zipMetric === "price_cut") {
-                return p.price_cut_pct == null ? [203, 213, 225, 70] : rampRG(1.0 - (p.price_cut_pct - 15) / 40, a);
+                return p.price_cut_pct == null ? [203, 213, 225, 55] : rampRG(1.0 - (p.price_cut_pct - 15) / 40, a);
               }
               if (state.zipMetric === "dom") {
-                return p.median_dom == null ? [203, 213, 225, 70] : rampRG(1.0 - (p.median_dom - 25) / 60, a);
+                return p.median_dom == null ? [203, 213, 225, 55] : rampRG(1.0 - (p.median_dom - 25) / 60, a);
               }
               if (state.zipMetric === "zhvi") {
-                return p.latest_zhvi == null ? [203, 213, 225, 70] : rampBlue((p.latest_zhvi - 220000) / 700000, 175);
+                return p.latest_zhvi == null ? [203, 213, 225, 55] : rampBlue((p.latest_zhvi - 220000) / 700000, showZipsBackdrop ? 80 : 175);
               }
-              return p.hotness_score == null ? [203, 213, 225, 70] : rampRG((p.hotness_score - 20) / 55, a);
+              return p.hotness_score == null ? [203, 213, 225, 55] : rampRG((p.hotness_score - 20) / 55, a);
             },
-            getLineColor: [71, 85, 105, 150],
+            getLineColor: [71, 85, 105, showZipsBackdrop ? 90 : 150],
             onHover: (info) => {
-              if (!info.object) return showTooltip(0, 0, null);
+              if (!info.object) return showCardTooltip(0, 0, null);
               const d = info.object.properties;
-              showTooltip(info.x, info.y, [
-                `${d.city || d.zip_code} (ZIP ${d.zip_code}) · ${d.county_name || ""}`,
-                `Buyer Hotness: ${d.hotness_score ?? "N/A"} · Days to Sell: ${d.median_dom ?? "-"}d`,
-                `Listings Cutting Price: ${d.price_cut_pct ?? "-"}% · Typical Value: ${fmtUSD(d.latest_zhvi)}`,
-              ]);
+              const hot = d.hotness_score;
+              showCardTooltip(info.x, info.y, {
+                title: `${d.city || d.zip_code} · ${d.zip_code}`,
+                badge: hot != null ? `Hot ${hot}` : (d.county_name || "").replace(" County", ""),
+                badgeTone: hot >= 55 ? "pos" : hot <= 35 ? "neg" : "blue",
+                rows: [
+                  ["Typical Home", fmtShortUSD(d.latest_zhvi)],
+                  ["Days to Sell", d.median_dom != null ? `${d.median_dom} days` : "—"],
+                  ["Price Cuts", d.price_cut_pct != null ? `${d.price_cut_pct}%` : "—"],
+                ],
+                foot: "Click for 10-yr trend & pricing tool",
+              });
             },
             onClick: (info) => { if (info.object) selectZipFeature(info.object.properties); },
-            updateTriggers: { getFillColor: [state.zipMetric] },
+            updateTriggers: { getFillColor: [state.zipMetric, showZipsBackdrop] },
           })
         );
       }
 
-      // 2. TAB 2: True 1:1 Individual Building Footprints (2D outlines OR 1:1 3D buildings!)
-      if (state.mode === "path_a" && state.buildingsGeo) {
+      // 2. TAB 2: Viewport-Streamed 5-County 3D Buildings + Guaranteed Roof-Anchored Comp Arcs!
+      if (state.mode === "path_a" && state.viewportGeo?.features?.length) {
+        const sel = state.selectedBuilding;
+        const selOid = sel?.overture_id || null;
+        // Belt-and-suspenders: ONLY render comp arcs & highlights for comps confirmed present in viewport!
+        const validComps = (sel?.has_gnn && sel.comps?.length)
+          ? sel.comps.filter((c) => c.comp_overture_id && state.bldgByOid.has(c.comp_overture_id))
+          : [];
+        const compOidSet = new Set(validComps.map((c) => c.comp_overture_id));
+
         layers.push(
           new deck.GeoJsonLayer({
             id: "overture-true-3d-buildings",
-            data: state.buildingsGeo,
+            data: state.viewportGeo,
             filled: true,
             stroked: true,
             extruded: state.is3D,
             wireframe: false,
             pickable: true,
             lineWidthMinPixels: 1,
-            elevationScale: state.is3D ? 1.0 : 0, // TRUE 1:1 physical meters
+            elevationScale: state.is3D ? 1.0 : 0,
             getElevation: (f) => Math.max(3, f.properties.height_m || 6),
             getFillColor: (f) => {
               const p = f.properties;
-              if (state.selectedBuilding && state.selectedBuilding.id === p.id) {
-                return [2, 132, 199, 255];
+              if (selOid && p.overture_id === selOid) return [2, 132, 199, 255];      // Selected: Cobalt Blue
+              if (compOidSet.has(p.overture_id)) return [16, 185, 129, 255];          // Top-5 Comps: Vivid Emerald
+
+              if (state.bldgMetric === "height") return rampBlue((p.height_m - 3) / 14, 220);
+
+              if (p.has_gnn) {
+                if (state.bldgMetric === "fair_value") return rampBlue((p.hybrid_pred - 250000) / 1400000, 225);
+                if (state.bldgMetric === "uncertainty") {
+                  const w = (p.swcp_upper - p.swcp_lower) / Math.max(1, p.hybrid_pred);
+                  return rampRG(1.0 - (w - 0.35) / 0.85, 225);
+                }
+                return rampRG((p.mispricing_pct + 25) / 50, 225);
               }
-              if (state.bldgMetric === "fair_value") return rampBlue((p.hybrid_pred - 250000) / 1400000, 225);
-              if (state.bldgMetric === "uncertainty") {
-                const w = (p.swcp_upper - p.swcp_lower) / Math.max(1, p.hybrid_pred);
-                return rampRG(1.0 - (w - 0.35) / 0.85, 225);
+
+              // Metro-wide Overture 3D buildings outside Sandy Springs: color softly by ZIP value or hotness
+              if (state.bldgMetric === "fair_value" && p.zip_zhvi != null) {
+                return rampBlue((p.zip_zhvi - 220000) / 700000, 195);
               }
-              if (state.bldgMetric === "height") return rampBlue((p.height_m - 3) / 14, 225);
-              return rampRG((p.mispricing_pct + 25) / 50, 225);
+              if (p.zip_hotness != null) {
+                return rampRG((p.zip_hotness - 25) / 50, 175);
+              }
+              return [148, 163, 184, 185];
             },
-            getLineColor: [30, 41, 59, 175],
+            getLineColor: (f) => {
+              const oid = f.properties.overture_id;
+              if (selOid && oid === selOid) return [12, 74, 110, 255];
+              if (compOidSet.has(oid)) return [6, 78, 59, 255];
+              return [51, 65, 85, 145];
+            },
             onHover: (info) => {
-              if (!info.object) return showTooltip(0, 0, null);
+              if (!info.object) return showCardTooltip(0, 0, null);
               const d = info.object.properties;
-              const hTag = d.height_measured ? "Overture measured" : "default est.";
-              showTooltip(info.x, info.y, [
-                `Home · Parcel ${d.id} (ZIP ${d.zip})`,
-                `AI Value: ${fmtUSD(d.hybrid_pred)} (Tax Appraisal ${fmtUSD(d.actual)})`,
-                `90% Range: ${fmtUSD(d.swcp_lower)} – ${fmtUSD(d.swcp_upper)}`,
-                `Height: ${d.height_m}m (${hTag}) · Footprint: ${d.footprint_sqm} m²`,
-              ]);
+              const label = niceBldgType(d.bldg_type, d.n_units);
+              if (d.has_gnn) {
+                const diff = d.mispricing_pct;
+                showCardTooltip(info.x, info.y, {
+                  title: `${label} · ${d.zip || "Sandy Springs"}`,
+                  badge: `${diff > 0 ? "+" : ""}${Math.round(diff)}% vs tax`,
+                  badgeTone: diff >= 5 ? "pos" : diff <= -5 ? "neg" : "blue",
+                  rows: [
+                    ["AI Value", `${fmtShortUSD(d.hybrid_pred)} (Tax ${fmtShortUSD(d.actual)})`],
+                    ["90% Range", `${fmtShortUSD(d.swcp_lower)} – ${fmtShortUSD(d.swcp_upper)}`],
+                    ["Size · Height", `${sqmToSqft(d.footprint_sqm)} · ${d.height_m}m`],
+                  ],
+                  foot: "Click to inspect & show 5 comps",
+                });
+              } else {
+                showCardTooltip(info.x, info.y, {
+                  title: `${label} · ${d.city || d.county || "Metro ATL"}${d.zip ? ` (${d.zip})` : ""}`,
+                  badge: d.zip_hotness != null ? `Hot ${d.zip_hotness}` : `${d.height_m}m`,
+                  badgeTone: "blue",
+                  rows: [
+                    ["ZIP Typical Home", fmtShortUSD(d.zip_zhvi)],
+                    ["Footprint · Height", `${sqmToSqft(d.footprint_sqm)} · ${d.height_m}m`],
+                    ["ZIP Cuts · DOM", `${d.zip_price_cut_pct ?? "—"}% · ${d.zip_median_dom ?? "—"}d`],
+                  ],
+                  foot: "Click for details",
+                });
+              }
             },
-            onClick: (info) => { if (info.object) selectBuilding(info.object.properties); },
-            updateTriggers: { extruded: [state.is3D], getFillColor: [state.selectedBuilding?.id, state.bldgMetric] },
+            onClick: (info) => { if (info.object) selectBuilding(info.object.properties, true); },
+            updateTriggers: {
+              extruded: [state.is3D],
+              getFillColor: [selOid, validComps.length, state.bldgMetric],
+              getLineColor: [selOid, validComps.length],
+            },
           })
         );
 
-        if (state.selectedBuilding && state.selectedBuilding.comps?.length) {
-          const p = state.selectedBuilding;
+        // Roof-anchored GNN Comp Arcs + Crisp Origin/Destination Pins (100% locked onto real buildings!)
+        if (sel && validComps.length && state.bldgByOid.has(sel.overture_id)) {
+          const srcZ = state.is3D ? Math.max(3, sel.height_m || 6) + 1.5 : 0;
           layers.push(
             new deck.ArcLayer({
               id: "gnn-comp-arcs",
-              data: p.comps,
+              data: validComps,
               pickable: true,
-              getSourcePosition: () => [p.lon, p.lat],
-              getTargetPosition: (c) => [c.lon, c.lat],
-              getSourceColor: [2, 132, 199, 255],
-              getTargetColor: [5, 150, 105, 255],
-              getWidth: (c) => Math.max(2.5, c.weight * 30),
-              getHeight: state.is3D ? 0.35 : 0.0,
+              widthMinPixels: 2,
+              widthMaxPixels: 6,
+              getSourcePosition: () => [sel.lon, sel.lat, srcZ],
+              getTargetPosition: (c) => [c.lon, c.lat, state.is3D ? Math.max(3, c.height_m || 6) + 1.5 : 0],
+              getSourceColor: [2, 132, 199, 240],
+              getTargetColor: [16, 185, 129, 245],
+              getWidth: (c) => Math.max(2.2, c.weight * 14),
+              getHeight: state.is3D ? 0.25 : 0.0,
               onHover: (info) => {
-                if (!info.object) return showTooltip(0, 0, null);
+                if (!info.object) return showCardTooltip(0, 0, null);
                 const c = info.object;
-                showTooltip(info.x, info.y, [
-                  `Comparable Home ${c.comp_id}`,
-                  `AI Similarity Weight: ${(c.weight * 100).toFixed(1)}%`,
-                  `Comp Value: ${fmtUSD(c.value)}`,
-                ]);
+                showCardTooltip(info.x, info.y, {
+                  title: "Comparable Home",
+                  badge: `${(c.weight * 100).toFixed(0)}% weight`,
+                  badgeTone: "pos",
+                  rows: [
+                    ["Comp Value", fmtUSD(c.value)],
+                    ["Parcel", c.comp_id],
+                  ],
+                  foot: "Click to inspect this comp",
+                });
               },
-              updateTriggers: { getHeight: [state.is3D] },
+              onClick: (info) => {
+                if (!info.object) return;
+                const tf = state.bldgByOid.get(info.object.comp_overture_id);
+                if (tf) selectBuilding(tf.properties, true);
+              },
+              updateTriggers: {
+                getSourcePosition: [sel.overture_id, state.is3D],
+                getTargetPosition: [state.is3D],
+                getHeight: [state.is3D],
+              },
+            })
+          );
+
+          const anchorPts = [
+            { pos: [sel.lon, sel.lat, srcZ + 0.5], isSelf: true },
+            ...validComps.map((c) => ({
+              pos: [c.lon, c.lat, state.is3D ? Math.max(3, c.height_m || 6) + 2.0 : 0],
+              isSelf: false,
+            })),
+          ];
+          layers.push(
+            new deck.ScatterplotLayer({
+              id: "gnn-comp-anchors",
+              data: anchorPts,
+              pickable: false,
+              radiusUnits: "pixels",
+              getRadius: (d) => d.isSelf ? 6 : 5,
+              getPosition: (d) => d.pos,
+              getFillColor: (d) => d.isSelf ? [2, 132, 199, 255] : [16, 185, 129, 255],
+              stroked: true,
+              getLineColor: [255, 255, 255, 255],
+              lineWidthMinPixels: 2,
+              updateTriggers: { getPosition: [sel.overture_id, state.is3D] },
             })
           );
         }
@@ -1185,13 +1542,17 @@
               getWidth: (d) => Math.max(2, Math.sqrt(d.commuters / 1000) * 1.4),
               getHeight: state.is3D ? 0.35 : 0.15,
               onHover: (info) => {
-                if (!info.object) return showTooltip(0, 0, null);
+                if (!info.object) return showCardTooltip(0, 0, null);
                 const d = info.object;
-                showTooltip(info.x, info.y, [
-                  `Morning Commute: ${d.home_county} → ${d.work_county}`,
-                  `Daily Commuters: ${d.commuters.toLocaleString()}`,
-                  `High-Wage Share: ${d.high_wage_pct}% (${d.high_wage_commuters.toLocaleString()})`,
-                ]);
+                showCardTooltip(info.x, info.y, {
+                  title: `${d.home_county} → ${d.work_county}`,
+                  badge: `${d.high_wage_pct}% high-wage`,
+                  badgeTone: "pos",
+                  rows: [
+                    ["Daily Commuters", d.commuters.toLocaleString()],
+                    ["High-Wage Workers", d.high_wage_commuters.toLocaleString()],
+                  ],
+                });
               },
             })
           );
@@ -1209,13 +1570,17 @@
               getWidth: (d) => Math.max(1.5, Math.sqrt(d.agi_millions) * 0.9),
               getHeight: state.is3D ? 0.5 : 0.2,
               onHover: (info) => {
-                if (!info.object) return showTooltip(0, 0, null);
+                if (!info.object) return showCardTooltip(0, 0, null);
                 const d = info.object;
-                showTooltip(info.x, info.y, [
-                  `${d.origin_label} → ${d.dest_county} County, GA`,
-                  `Incoming Income (AGI): $${d.agi_millions}M (${d.households} households)`,
-                  `Avg Household Income: $${d.avg_agi_k}k`,
-                ]);
+                showCardTooltip(info.x, info.y, {
+                  title: `${d.origin_label} → ${d.dest_county}`,
+                  badge: `$${d.agi_millions}M AGI`,
+                  badgeTone: "blue",
+                  rows: [
+                    ["Households", d.households.toLocaleString()],
+                    ["Avg Income", `$${d.avg_agi_k}k`],
+                  ],
+                });
               },
             })
           );
@@ -1234,14 +1599,20 @@
             data: filteredCats,
             pickable: true,
             radiusMinPixels: 4,
-            radiusMaxPixels: 9,
+            radiusMaxPixels: 8,
             getPosition: (d) => [d.lon, d.lat],
             getFillColor: (d) => d.type.includes("Rezoning") ? [217, 119, 6, 225] : [225, 29, 72, 225],
             stroked: true, getLineColor: [255, 255, 255, 210], lineWidthMinPixels: 1,
             onHover: (info) => {
-              if (!info.object) return showTooltip(0, 0, null);
+              if (!info.object) return showCardTooltip(0, 0, null);
               const d = info.object;
-              showTooltip(info.x, info.y, [d.type, d.label, d.detail]);
+              showCardTooltip(info.x, info.y, {
+                title: d.type,
+                rows: [
+                  ["Case / Project", d.label || "—"],
+                  ["Detail", d.detail || "—"],
+                ],
+              });
             },
           })
         );
@@ -1251,17 +1622,19 @@
               id: "path-b-streetscapes",
               data: state.streetscapes,
               pickable: true,
-              radiusMinPixels: 3, radiusMaxPixels: 8,
+              radiusMinPixels: 3, radiusMaxPixels: 7,
               getPosition: (d) => [d.lon, d.lat],
               getFillColor: [5, 150, 105, 225],
               stroked: true, getLineColor: [255, 255, 255, 210], lineWidthMinPixels: 1,
               onHover: (info) => {
-                if (!info.object) return showTooltip(0, 0, null);
+                if (!info.object) return showCardTooltip(0, 0, null);
                 const d = info.object;
-                showTooltip(info.x, info.y, [
-                  `Mapillary Street Photo (${d.suburb})`,
-                  `Image ID: ${d.image_id} · Street Features in Hex: ${d.hex_map_feature_count}`,
-                ]);
+                showCardTooltip(info.x, info.y, {
+                  title: `Street Photo · ${d.suburb}`,
+                  badge: "Mapillary",
+                  badgeTone: "pos",
+                  rows: [["Hex Features", String(d.hex_map_feature_count)]],
+                });
               },
             })
           );
@@ -1315,8 +1688,8 @@
           data: {
             labels: hist.map((r) => r.month),
             datasets: [
-              { label: "Days to Sell (DOM)", data: hist.map((r) => r.median_dom), borderColor: "#0284c7", borderWidth: 2, pointRadius: 0, tension: 0.25 },
-              { label: "Price Cuts (%)", data: hist.map((r) => r.price_cut_pct), borderColor: "#e11d48", borderWidth: 1.8, pointRadius: 0, tension: 0.25 },
+              { label: "Days to Sell", data: hist.map((r) => r.median_dom), borderColor: "#0284c7", borderWidth: 2, pointRadius: 0, tension: 0.25 },
+              { label: "Price Cuts %", data: hist.map((r) => r.price_cut_pct), borderColor: "#e11d48", borderWidth: 1.8, pointRadius: 0, tension: 0.25 },
             ],
           },
           options: {
@@ -1342,9 +1715,9 @@
         const opt = data.optimal_row;
         const over4 = frontier.find((r) => Math.abs(r.ask_spread_pct - 4.0) < 0.1);
         const diffMsg = over4 && opt.ask_spread_pct < 4.0
-          ? ` Listing +4% too high adds ${(over4.exp_dom_days - opt.exp_dom_days).toFixed(0)} extra days and costs ${fmtUSD(opt.expected_net - over4.expected_net)}.`
+          ? ` Listing +4% too high adds ${(over4.exp_dom_days - opt.exp_dom_days).toFixed(0)}d and costs ${fmtUSD(opt.expected_net - over4.expected_net)}.`
           : "";
-        verdictEl.textContent = `Best Strategy for ZIP ${zc}: List at ${fmtUSD(opt.ask_price)} (${opt.ask_spread_pct >= 0 ? "+" : ""}${opt.ask_spread_pct}% vs. fair value) → ~${opt.exp_dom_days}d to sell, est. net ${fmtUSD(opt.expected_net)}.${diffMsg}`;
+        verdictEl.textContent = `Best Ask (${zc}): ${fmtUSD(opt.ask_price)} (${opt.ask_spread_pct >= 0 ? "+" : ""}${opt.ask_spread_pct}%) → ~${opt.exp_dom_days}d, net ${fmtUSD(opt.expected_net)}.${diffMsg}`;
 
         if (state.charts.sim) state.charts.sim.destroy();
         state.charts.sim = new Chart(document.getElementById("sim-chart"), {
@@ -1352,7 +1725,7 @@
           data: {
             labels: frontier.map((r) => `${r.ask_spread_pct >= 0 ? "+" : ""}${r.ask_spread_pct}%`),
             datasets: [{
-              label: "Expected Net Proceeds ($)",
+              label: "Expected Net ($)",
               data: frontier.map((r) => r.expected_net),
               borderColor: "#059669", backgroundColor: "rgba(5,150,105,0.12)", fill: true,
               borderWidth: 2,
@@ -1414,12 +1787,15 @@
             );
           }
           const targetMode = data.fly_to.mode === "path_c_towers" ? "path_c_zips" : data.fly_to.mode;
+          if (targetMode === "path_a" && data.fly_to.overture_id) {
+            state.pendingSelectOid = data.fly_to.overture_id;
+          }
           switchMode(targetMode, false);
           map.flyTo({
             center: [data.fly_to.lon, data.fly_to.lat],
             zoom: targetMode === "path_a" ? 16.0 : data.fly_to.zoom,
             pitch: (targetMode === "path_a" && state.is3D) ? 48 : 0,
-            duration: 950,
+            duration: 900,
           });
         }
         if (data.rows?.length && data.fly_to?.mode !== "path_a") {
@@ -1442,9 +1818,9 @@
         data: {
           labels: state.metroTs.map((r) => r.month),
           datasets: [
-            { label: "Days to Sell (DOM)", data: state.metroTs.map((r) => r.median_dom), borderColor: "#0284c7", borderWidth: 2, pointRadius: 0, yAxisID: "y" },
-            { label: "Price-Cut Share (%)", data: state.metroTs.map((r) => r.avg_price_cut_pct), borderColor: "#e11d48", borderWidth: 1.8, pointRadius: 0, yAxisID: "y" },
-            { label: "30Y Mortgage Rate (%)", data: state.metroTs.map((r) => r.mortgage_30y), borderColor: "#d97706", borderDash: [4, 3], borderWidth: 2, pointRadius: 0, yAxisID: "y1" },
+            { label: "Days to Sell", data: state.metroTs.map((r) => r.median_dom), borderColor: "#0284c7", borderWidth: 2, pointRadius: 0, yAxisID: "y" },
+            { label: "Price Cuts %", data: state.metroTs.map((r) => r.avg_price_cut_pct), borderColor: "#e11d48", borderWidth: 1.8, pointRadius: 0, yAxisID: "y" },
+            { label: "30Y Rate %", data: state.metroTs.map((r) => r.mortgage_30y), borderColor: "#d97706", borderDash: [4, 3], borderWidth: 2, pointRadius: 0, yAxisID: "y1" },
           ],
         },
         options: {
@@ -1484,7 +1860,7 @@
             { label: "Spatial CQR / LSCP (%)", data: b.spatial_cqr.map((r) => r.spatial_cqr), backgroundColor: "#0284c7", borderRadius: 5 },
           ],
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 60, max: 100, title: { display: true, text: "Empirical Coverage (Target = 90%)" } } } },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 60, max: 100, title: { display: true, text: "Coverage (Target = 90%)" } } } },
       });
 
       const h24 = state.analytics.hmda_2024 || [];
@@ -1494,7 +1870,7 @@
           labels: h24.map((r) => r.county_name),
           datasets: [
             { label: "Investor Share (%)", data: h24.map((r) => +(r.investor_purchase_share * 100).toFixed(1)), backgroundColor: "#d97706", borderRadius: 5 },
-            { label: "Mortgage Denial Rate (%)", data: h24.map((r) => +(r.denial_rate * 100).toFixed(1)), backgroundColor: "#e11d48", borderRadius: 5 },
+            { label: "Denial Rate (%)", data: h24.map((r) => +(r.denial_rate * 100).toFixed(1)), backgroundColor: "#e11d48", borderRadius: 5 },
           ],
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: "Share (%)" } } } },
@@ -1510,7 +1886,7 @@
             { label: "Momentum + Liquidity + FRED", data: [wf.excess_6m_ic_after, wf.dom_3m_ic_after], backgroundColor: "#059669", borderRadius: 6 },
           ],
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 0.7, title: { display: true, text: "Monthly Cross-Sectional Rank IC" } } } },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 0.7, title: { display: true, text: "Monthly Rank IC" } } } },
       });
     }
 
@@ -1529,53 +1905,54 @@
 
       if (state.mode === "path_c_zips") {
         if (state.zipMetric === "price_cut") {
-          title.textContent = "Listings Cutting Price (Buyer Leverage)"; bar.style.background = rgGrad;
+          title.textContent = "Price Cuts % (Buyer Leverage)"; bar.style.background = rgGrad;
           low.textContent = "High Cuts (55%)"; mid.textContent = "35%"; high.textContent = "Tight (15%)";
         } else if (state.zipMetric === "dom") {
-          title.textContent = "Median Days to Sell (DOM)"; bar.style.background = rgGrad;
+          title.textContent = "Median Days to Sell"; bar.style.background = rgGrad;
           low.textContent = "Slow (85d+)"; mid.textContent = "55d"; high.textContent = "Fast (25d)";
         } else if (state.zipMetric === "zhvi") {
-          title.textContent = "Typical Home Value (Zillow ZHVI)"; bar.style.background = blueGrad;
+          title.textContent = "Typical Home Value (ZHVI)"; bar.style.background = blueGrad;
           low.textContent = "$220k"; mid.textContent = "$550k"; high.textContent = "$920k+";
         } else {
-          title.textContent = "Buyer Hotness Score (Oct 2026)"; bar.style.background = rgGrad;
+          title.textContent = "Buyer Hotness (Oct 2026)"; bar.style.background = rgGrad;
           low.textContent = "Cool (20)"; mid.textContent = "Balanced"; high.textContent = "Hot (75+)";
         }
       } else if (state.mode === "path_a") {
         if (state.bldgMetric === "fair_value") {
-          title.textContent = "AI Estimated Home Value (Sandy Springs)"; bar.style.background = blueGrad;
+          title.textContent = "Estimated / ZIP Home Value"; bar.style.background = blueGrad;
           low.textContent = "$250k"; mid.textContent = "$900k"; high.textContent = "$1.65M+";
         } else if (state.bldgMetric === "uncertainty") {
           title.textContent = "90% Confidence Band Width"; bar.style.background = rgGrad;
           low.textContent = "Wider"; mid.textContent = "Moderate"; high.textContent = "Tighter";
         } else if (state.bldgMetric === "height") {
-          title.textContent = "Overture True Building Height (1:1 m)"; bar.style.background = blueGrad;
-          low.textContent = "3m (1-story)"; mid.textContent = "10m"; high.textContent = "17m+";
+          title.textContent = "Building Height (1:1 meters)"; bar.style.background = blueGrad;
+          low.textContent = "3m"; mid.textContent = "10m"; high.textContent = "17m+";
         } else {
-          title.textContent = "AI Value vs. County Tax Appraisal"; bar.style.background = rgGrad;
-          low.textContent = "Below Appraisal"; mid.textContent = "Matches"; high.textContent = "Above Appraisal";
+          title.textContent = "AI vs. Tax (Blue=Selected · Green=Comps)"; bar.style.background = rgGrad;
+          low.textContent = "Below Tax"; mid.textContent = "Fair"; high.textContent = "Above Tax";
         }
       } else if (state.mode === "path_c_arcs") {
-        title.textContent = state.flowType === "lodes" ? "Morning Cross-County Job Commutes" : "Out-of-State Household Income Moving to ATL";
+        title.textContent = state.flowType === "lodes" ? "Morning Cross-County Commutes" : "Out-of-State Wealth Inflows";
         bar.style.background = state.flowType === "lodes" ? "linear-gradient(90deg, #059669, #0284c7)" : "linear-gradient(90deg, #d97706, #0284c7)";
-        low.textContent = state.flowType === "lodes" ? "Home Suburb" : "Origin State";
-        mid.textContent = state.flowType === "lodes" ? "Width = Commuters" : "Width = AGI $M";
-        high.textContent = "Work / Dest County";
+        low.textContent = state.flowType === "lodes" ? "Home Suburb" : "Origin";
+        mid.textContent = state.flowType === "lodes" ? "Width = Commuters" : "Width = AGI";
+        high.textContent = "Work / Dest";
       } else {
-        title.textContent = "Development Catalysts & Streetscape Photos"; bar.style.background = rgGrad;
-        low.textContent = "Permits (Red)"; mid.textContent = "Rezoning (Amber)"; high.textContent = "Street Photos (Green)";
+        title.textContent = "Catalysts & Street Photos"; bar.style.background = rgGrad;
+        low.textContent = "Permits"; mid.textContent = "Rezoning"; high.textContent = "Street Photos";
       }
     }
 
     function updateFlowNote() {
       document.getElementById("flow-note").textContent =
         state.flowType === "lodes"
-          ? "Showing daily morning commutes across our 5 counties: DeKalb→Fulton (124K), Cobb→Fulton (112K, 69% high-wage), Gwinnett→Fulton (89K), and Forsyth→Fulton (39K, 79.6% high-wage)."
-          : "Showing top out-of-state household income (AGI) moving into Metro Atlanta: Los Angeles ($170M), Chicago ($130M), Manhattan ($100M), Seattle ($90M), and Silicon Valley ($80M).";
+          ? "Daily morning commutes: DeKalb→Fulton (124K), Cobb→Fulton (112K, 69% high-wage), Gwinnett→Fulton (89K), Forsyth→Fulton (39K, 79.6% high-wage)."
+          : "Top out-of-state household income (AGI) moving to Metro Atlanta: Los Angeles ($170M), Chicago ($130M), Manhattan ($100M), Seattle ($90M).";
     }
 
     function switchMode(newMode, doFly = true) {
       state.mode = newMode;
+      showCardTooltip(0, 0, null);
       document.querySelectorAll(".nav-tab").forEach((tab) => {
         const active = tab.dataset.mode === newMode;
         tab.setAttribute("aria-selected", String(active));
@@ -1585,6 +1962,7 @@
       const isAnalytics = newMode === "analytics";
       document.getElementById("panel-analytics").hidden = !isAnalytics;
       document.getElementById("map-drawer").hidden = isAnalytics;
+      document.getElementById("viewport-pill").hidden = (newMode !== "path_a");
 
       ["path_c_zips", "path_a", "path_c_arcs", "path_eb"].forEach((m) => {
         const p = document.getElementById(`panel-${m}`);
@@ -1599,14 +1977,34 @@
           if (newMode === "path_c_arcs") vKey = state.flowType === "lodes" ? "path_c_lodes" : "path_c_irs";
           const v = VIEWS[vKey];
           const usePitch = (newMode === "path_a" && state.is3D) ? v.pitch : (newMode === "path_c_arcs" && state.flowType === "irs" ? 35 : 0);
-          map.flyTo({ center: v.center, zoom: v.zoom, pitch: usePitch, bearing: usePitch ? v.bearing : 0, duration: 900 });
+          const center = (newMode === "path_a" && state.selectedBuilding)
+            ? [state.selectedBuilding.lon, state.selectedBuilding.lat]
+            : v.center;
+          map.flyTo({ center, zoom: v.zoom, pitch: usePitch, bearing: usePitch ? v.bearing : 0, duration: 850 });
+        } else if (newMode === "path_a") {
+          fetchViewportBuildings(true);
         }
         renderLayers();
       }
       updateLegend();
     }
 
-    // 1-Click Guided Examples inside the "? How to Use" Dialog
+    // 1-Click Neighborhood Jump Chips (5 Counties!)
+    document.querySelectorAll("#suburb-jump-bar .chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const lon = Number(btn.dataset.lon);
+        const lat = Number(btn.dataset.lat);
+        const zoom = Number(btn.dataset.zoom) || 15.5;
+        state.lastFetchedBounds = null;
+        map.flyTo({ center: [lon, lat], zoom, pitch: state.is3D ? 48 : 0, bearing: state.is3D ? -14 : 0, duration: 900 });
+      });
+    });
+
+    document.getElementById("vp-zoom-btn").addEventListener("click", () => {
+      map.easeTo({ zoom: 15.4, pitch: state.is3D ? 48 : 0, duration: 650 });
+    });
+
+    // 1-Click Guided Examples
     document.querySelectorAll(".tour-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const t = btn.dataset.tour;
@@ -1618,22 +2016,20 @@
           const feat = state.zipsGeo?.features?.find((f) => f.properties.zip_code === "30152");
           if (feat) {
             selectZipFeature(feat.properties);
-            map.flyTo({ center: [feat.properties.lon, feat.properties.lat], zoom: 11.4, pitch: 0, duration: 950 });
+            map.flyTo({ center: [feat.properties.lon, feat.properties.lat], zoom: 11.4, pitch: 0, duration: 900 });
           }
         } else if (t === "home3d") {
           state.is3D = true;
           sync3DButton();
           switchMode("path_a", false);
-          const f0 = state.buildingsGeo?.features?.find((f) => f.properties.height_measured && f.properties.mispricing_pct > 5) || state.buildingsGeo?.features?.[0];
-          if (f0) {
-            selectBuilding(f0.properties);
-            map.flyTo({ center: [f0.properties.lon, f0.properties.lat], zoom: 16.4, pitch: 54, bearing: -16, duration: 1000 });
-          }
-        } else if (t === "commutes") {
-          state.flowType = "lodes";
-          document.querySelectorAll("#flow-metric-bar .seg-btn").forEach((x) => x.classList.toggle("active", x.dataset.flow === "lodes"));
-          updateFlowNote();
-          switchMode("path_c_arcs", true);
+          const sel = state.selectedBuilding;
+          const center = sel ? [sel.lon, sel.lat] : VIEWS.path_a.center;
+          map.flyTo({ center, zoom: 16.2, pitch: 52, bearing: -15, duration: 900 });
+        } else if (t === "alpharetta3d") {
+          state.is3D = true;
+          sync3DButton();
+          switchMode("path_a", false);
+          map.flyTo({ center: [-84.294, 34.075], zoom: 15.6, pitch: 50, bearing: -12, duration: 950 });
         } else if (t === "charts") {
           switchMode("analytics", false);
         }
@@ -1648,7 +2044,7 @@
       state.is3D = !state.is3D;
       sync3DButton();
       if (state.mode !== "analytics") {
-        map.easeTo({ pitch: state.is3D ? 50 : 0, bearing: state.is3D ? -14 : 0, duration: 550 });
+        map.easeTo({ pitch: state.is3D ? 50 : 0, bearing: state.is3D ? -14 : 0, duration: 500 });
         renderLayers();
       }
     });
@@ -1662,7 +2058,7 @@
     document.getElementById("btn-toggle-drawer").addEventListener("click", (e) => {
       const dr = document.getElementById("map-drawer");
       const collapsed = dr.classList.toggle("collapsed");
-      e.target.textContent = collapsed ? "Show Panel" : "Hide Panel";
+      e.target.textContent = collapsed ? "Show" : "Panel";
       e.target.setAttribute("aria-pressed", String(collapsed));
     });
 
@@ -1700,13 +2096,17 @@
     document.getElementById("sim-run").addEventListener("click", runSimulator);
     document.getElementById("nl-run").addEventListener("click", () => runSpatialQuery());
     document.getElementById("nl-input").addEventListener("keydown", (e) => { if (e.key === "Enter") runSpatialQuery(); });
-    document.querySelectorAll(".chip").forEach((ch) => ch.addEventListener("click", () => runSpatialQuery(ch.dataset.q)));
+    document.querySelectorAll(".chip[data-q]").forEach((ch) => ch.addEventListener("click", () => runSpatialQuery(ch.dataset.q)));
+
+    // Trigger snappy viewport streaming whenever camera stops moving on Tab 2
+    map.on("moveend", scheduleViewportFetch);
 
     async function bootstrap() {
-      const [cGeo, zGeo, bGeo, aRes, lRes, eRes, bRes, tsRes, anRes] = await Promise.all([
+      // Lightweight startup (<1 MB total — ZERO 19MB building dump on initial page load!)
+      const [cGeo, zGeo, fHome, aRes, lRes, eRes, bRes, tsRes, anRes] = await Promise.all([
         fetch("/api/boundaries/counties").then((r) => r.json()),
         fetch("/api/path-c/zips-geojson").then((r) => r.json()),
-        fetch("/api/path-a/buildings-3d").then((r) => r.json()),
+        fetch("/api/path-a/featured-home").then((r) => r.ok ? r.json() : null).catch(() => null),
         fetch("/api/path-c/migration-arcs").then((r) => r.json()),
         fetch("/api/path-c/commute-arcs").then((r) => r.json()),
         fetch("/api/path-e/catalysts").then((r) => r.json()),
@@ -1717,7 +2117,6 @@
 
       state.countiesGeo = cGeo;
       state.zipsGeo = zGeo;
-      state.buildingsGeo = bGeo;
       state.irsArcs = aRes.arcs || [];
       state.lodesArcs = lRes.arcs || [];
       state.catalysts = eRes.catalysts || [];
@@ -1735,7 +2134,7 @@
           ["Loans", Number(r.purchase_originations).toLocaleString()],
           ["Deny%", `${(r.denial_rate * 100).toFixed(1)}%`],
           ["Inv%", `${(r.investor_purchase_share * 100).toFixed(1)}%`],
-          ["Med Val", fmtUSD(r.median_property_value)],
+          ["Med Val", fmtShortUSD(r.median_property_value)],
         ]) {
           const td = document.createElement("td"); td.dataset.label = lbl; td.textContent = val; tr.appendChild(td);
         }
@@ -1751,7 +2150,7 @@
         for (const [lbl, val] of [
           ["Canopy", `${r.mean_gvi_pct}%`],
           ["Sky", `${r.mean_svf_pct}%`],
-          ["ZHVI", fmtUSD(r.zhvi)],
+          ["ZHVI", fmtShortUSD(r.zhvi)],
         ]) {
           const td = document.createElement("td"); td.dataset.label = lbl; td.textContent = val; tr.appendChild(td);
         }
@@ -1760,7 +2159,7 @@
 
       const defaultZip = zGeo.features?.find((f) => f.properties.zip_code === "30075") || zGeo.features?.[0];
       if (defaultZip) selectZipFeature(defaultZip.properties);
-      if (bGeo.features?.length > 0) selectBuilding(bGeo.features[0].properties);
+      if (fHome?.properties) selectBuilding(fHome.properties, false);
 
       updateFlowNote();
       updateLegend();

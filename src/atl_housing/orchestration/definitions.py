@@ -10,6 +10,7 @@ from atl_housing.tracks.path_a_valuation.ingest import (
     ingest_county_parcels_sample,
     ingest_overture_3d_buildings,
 )
+from atl_housing.tracks.path_a_valuation.metro_3d_index import build_metro_3d_duckdb
 from atl_housing.tracks.path_a_valuation.spatial_gnn import train_and_benchmark_gnn
 from atl_housing.tracks.path_c_liquidity.fred_macro import ingest_fred_macro
 from atl_housing.tracks.path_c_liquidity.ingest import (
@@ -100,6 +101,15 @@ def gold_path_a_gnn_3d_predictions(context: AssetExecutionContext) -> Materializ
     return MaterializeResult(metadata={"gold_parquet": str(out)})
 
 
+@asset(
+    group_name="gold_ml_path_a",
+    deps=[gold_path_a_gnn_3d_predictions],
+)
+def gold_metro_5county_3d_spatial_index(context: AssetExecutionContext) -> MaterializeResult:
+    out: Path = build_metro_3d_duckdb()
+    return MaterializeResult(metadata={"duckdb_index": str(out)})
+
+
 @asset(group_name="bronze_path_e")
 def bronze_atlanta_catalysts(context: AssetExecutionContext) -> MaterializeResult:
     outs = ingest_catalyst_layers()
@@ -118,6 +128,7 @@ defs = Definitions(
         bronze_fulton_parcels,
         bronze_overture_3d_sandy_springs,
         gold_path_a_gnn_3d_predictions,
+        gold_metro_5county_3d_spatial_index,
         bronze_atlanta_catalysts,
     ]
 )
