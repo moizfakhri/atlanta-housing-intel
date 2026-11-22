@@ -127,9 +127,9 @@ def walk_forward_evaluate(
         if train_df.height < 200 or test_df.height < 20:
             continue
 
-        X_train = train_df.select(features).to_numpy()
+        X_train = np.where(np.isfinite(train_df.select(features).to_numpy()), train_df.select(features).to_numpy(), np.nan)
         y_train = train_df[target].to_numpy()
-        X_test = test_df.select(features).to_numpy()
+        X_test = np.where(np.isfinite(test_df.select(features).to_numpy()), test_df.select(features).to_numpy(), np.nan)
         y_test = test_df[target].to_numpy()
 
         if model_type == "ridge":

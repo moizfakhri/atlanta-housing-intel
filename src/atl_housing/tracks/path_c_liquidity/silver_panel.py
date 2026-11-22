@@ -44,9 +44,18 @@ def build_zip_liquidity_panel() -> Path:
             gross_rent_yield
         FROM read_parquet('{zillow_pq}');
 
+        CREATE OR REPLACE VIEW v_zillow_zip_dim AS
+        SELECT
+            zip_code,
+            ANY_VALUE(City) AS city,
+            ANY_VALUE(CountyName) AS county_name
+        FROM read_parquet('{zillow_pq}')
+        GROUP BY zip_code;
+
         CREATE OR REPLACE VIEW v_realtor_zip_core AS
         SELECT
             LPAD(CAST(postal_code AS VARCHAR), 5, '0') AS zip_code,
+            zip_name,
             STRPTIME(CAST(month_date_yyyymm AS VARCHAR) || '01', '%Y%m%d')::DATE AS month_date,
             TRY_CAST(median_listing_price AS DOUBLE) AS median_listing_price,
             TRY_CAST(median_listing_price_per_square_foot AS DOUBLE) AS list_price_per_sqft,
@@ -70,7 +79,7 @@ def build_zip_liquidity_panel() -> Path:
             TRY_CAST(supply_score AS DOUBLE) AS supply_score,
             TRY_CAST(demand_score AS DOUBLE) AS demand_score,
             TRY_CAST(hotness_rank AS DOUBLE) AS hotness_rank,
-            TRY_CAST(ldp_unique_viewers_per_property_vs_us AS DOUBLE) AS buyer_views_vs_us
+            TRY_CAST(page_view_count_per_property_vs_us AS DOUBLE) AS buyer_views_vs_us
         FROM read_parquet('{hot_pq}')
         WHERE LENGTH(CAST(month_date_yyyymm AS VARCHAR)) = 6;
 
@@ -79,8 +88,8 @@ def build_zip_liquidity_panel() -> Path:
             SELECT
                 c.zip_code,
                 c.month_date,
-                z.city,
-                z.county_name,
+                COALESCE(d.city, c.zip_name) AS city,
+                d.county_name,
                 z.zhvi,
                 z.zori,
                 z.gross_rent_yield,
@@ -108,6 +117,8 @@ def build_zip_liquidity_panel() -> Path:
                 CASE WHEN z.zhvi > 0 AND c.median_listing_price > 0
                     THEN (c.median_listing_price - z.zhvi) / z.zhvi END AS ask_vs_zhvi_spread
             FROM v_realtor_zip_core c
+            LEFT JOIN v_zillow_zip_dim d
+                ON c.zip_code = d.zip_code
             LEFT JOIN v_zillow_zip z
                 ON c.zip_code = z.zip_code AND c.month_date = z.month_date
             LEFT JOIN v_realtor_zip_hotness h
