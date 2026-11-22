@@ -151,7 +151,7 @@ def run_spatial_cqr_audit(alpha: float = 0.10, bandwidth_km: float = 2.5) -> dic
     }
 
 
-def export_true_3d_building_footprints(max_buildings: int = 3500) -> Path:
+def export_true_3d_building_footprints(max_buildings: int = 12000) -> Path:
     """Export actual Overture 3D building polygon footprints joined with Gold GNN predictions."""
     overture_pq = PATH_A_BRONZE / "overture_3d_buildings_sandy_springs.parquet"
     parcels_pq = PATH_A_BRONZE / "parcels_fulton_sample.parquet"
@@ -186,7 +186,9 @@ def export_true_3d_building_footprints(max_buildings: int = 3500) -> Path:
         bld AS (
             SELECT
                 id AS overture_id,
+                height IS NOT NULL AS height_measured,
                 COALESCE(height, 6.0) AS height_m,
+                num_floors,
                 ROUND(footprint_sqm, 1) AS footprint_sqm,
                 lon,
                 lat,
@@ -196,7 +198,9 @@ def export_true_3d_building_footprints(max_buildings: int = 3500) -> Path:
         )
         SELECT
             b.overture_id,
+            b.height_measured,
             b.height_m,
+            b.num_floors,
             b.footprint_sqm,
             b.lon,
             b.lat,
@@ -225,23 +229,25 @@ def export_true_3d_building_footprints(max_buildings: int = 3500) -> Path:
         features.append(
             {
                 "type": "Feature",
-                "geometry": json.loads(r[5]),
+                "geometry": json.loads(r[7]),
                 "properties": {
                     "overture_id": r[0],
-                    "height_m": round(float(r[1]), 1),
-                    "footprint_sqm": float(r[2]),
-                    "lon": round(float(r[3]), 6),
-                    "lat": round(float(r[4]), 6),
-                    "id": str(r[6]),
-                    "zip": str(r[7] or ""),
-                    "actual": float(r[8]),
-                    "hybrid_pred": float(r[9]),
-                    "gnn_pred": float(r[10]),
-                    "lgbm_pred": float(r[11]),
-                    "swcp_lower": float(r[12]),
-                    "swcp_upper": float(r[13]),
-                    "mispricing_pct": float(r[14]),
-                    "comps": json.loads(r[15]),
+                    "height_measured": bool(r[1]),
+                    "height_m": round(float(r[2]), 1),
+                    "num_floors": int(r[3]) if r[3] is not None else None,
+                    "footprint_sqm": float(r[4]),
+                    "lon": round(float(r[5]), 6),
+                    "lat": round(float(r[6]), 6),
+                    "id": str(r[8]),
+                    "zip": str(r[9] or ""),
+                    "actual": float(r[10]),
+                    "hybrid_pred": float(r[11]),
+                    "gnn_pred": float(r[12]),
+                    "lgbm_pred": float(r[13]),
+                    "swcp_lower": float(r[14]),
+                    "swcp_upper": float(r[15]),
+                    "mispricing_pct": float(r[16]),
+                    "comps": json.loads(r[17]),
                 },
             }
         )

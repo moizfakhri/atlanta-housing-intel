@@ -105,6 +105,24 @@ def get_buildings_3d_footprints() -> FileResponse:
     return FileResponse(gj, media_type="application/geo+json")
 
 
+@app.get("/api/boundaries/counties")
+def get_county_boundaries() -> FileResponse:
+    """Serve official 2024 Census 5-county Metro Atlanta outlines with 2024 HMDA credit stats."""
+    gj = GOLD_DIR / "boundaries" / "atlanta_5counties.geojson"
+    if not gj.exists():
+        raise HTTPException(status_code=404, detail="Run atl_housing.lakehouse.boundaries first.")
+    return FileResponse(gj, media_type="application/geo+json")
+
+
+@app.get("/api/path-c/zips-geojson")
+def get_zips_choropleth_geojson() -> FileResponse:
+    """Serve real 2025 TIGER Metro Atlanta ZIP polygons joined to latest liquidity & hotness metrics."""
+    gj = GOLD_DIR / "path_c" / "atlanta_zips_choropleth.geojson"
+    if not gj.exists():
+        raise HTTPException(status_code=404, detail="Run atl_housing.lakehouse.boundaries first.")
+    return FileResponse(gj, media_type="application/geo+json")
+
+
 @app.get("/api/path-a/parcels-3d")
 def get_parcels_3d(limit: int = Query(default=2500, ge=100, le=5000)) -> dict[str, Any]:
     """Return 3D residential parcels with PyTorch GNN + LightGBM predictions, SWCP intervals & top-5 comps."""

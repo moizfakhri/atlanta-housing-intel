@@ -27,11 +27,19 @@ def test_dagster_definitions_load_all_assets() -> None:
 def test_fastapi_serves_index_and_health() -> None:
     r_home = client.get("/")
     assert r_home.status_code == 200
-    assert "Metro Atlanta 3D Housing Twin" in r_home.text
+    assert "Metro Atlanta Housing Intelligence Atlas" in r_home.text
 
     r_health = client.get("/api/health")
     assert r_health.status_code == 200
     assert r_health.json()["status"] == "ok"
+
+    r_counties = client.get("/api/boundaries/counties")
+    assert r_counties.status_code == 200
+    assert len(r_counties.json()["features"]) == 5
+
+    r_zips_geo = client.get("/api/path-c/zips-geojson")
+    assert r_zips_geo.status_code == 200
+    assert len(r_zips_geo.json()["features"]) >= 180
 
 
 def test_fastapi_3d_and_simulator_endpoints() -> None:
