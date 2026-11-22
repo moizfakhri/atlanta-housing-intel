@@ -107,7 +107,7 @@ def build_parcel_3d_dataset(overture_tag: str = "sandy_springs") -> pl.DataFrame
             ON ST_Contains(ST_GeomFromWKB(p.parcel_wkb), b.bld_pt)
         GROUP BY p.ParcelID
         """
-    ).fetch_arrow_table()
+    ).to_arrow_table()
     joined = pl.from_arrow(joined_arrow)
 
     return base_df.join(joined, on="ParcelID", how="left")
