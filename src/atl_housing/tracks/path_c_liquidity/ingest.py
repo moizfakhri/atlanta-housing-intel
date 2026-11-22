@@ -120,9 +120,11 @@ def ingest_hmda_atlanta(years: list[int] | None = None) -> Path:
                         for chunk in r.iter_bytes(chunk_size=1024 * 256):
                             f.write(chunk)
 
+            with cache_csv.open("r", encoding="utf-8", errors="ignore") as hdr_f:
+                header_cols = [h.strip().strip('"') for h in hdr_f.readline().split(",")]
             df = pl.read_csv(
                 cache_csv,
-                columns=[c for c in keep_cols if c in pl.read_csv(cache_csv, n_rows=1).columns],
+                columns=[c for c in keep_cols if c in header_cols],
                 infer_schema_length=0,  # read as strings first to safely parse "Exempt"/"NA"
             )
             frames.append(df)
